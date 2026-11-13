@@ -32,12 +32,12 @@ course: "认知智能"
 > $$T=Z/\\sqrt{U/\\nu} \\tag{3.7}$$
 ## 解释
 > [!tip] 图文
-> ![[认知智能/assets/original/source.png|500]]
+> ![原图|500](../assets/original/source.png)
 > **图 2.1 [原图]**：源课件 P.14。
 > [!note]- 数学推导
-> 见 [[认知智能/notes/t分布#核心速览]]
+> 见 [本节核心速览](t分布.md#核心速览)
 ''', encoding="utf-8")
-        (self.course / "review/第三章.md").write_text('![[认知智能/notes/t分布#核心速览]]\n', encoding="utf-8")
+        (self.course / "review/第三章.md").write_text('![[t分布#核心速览]]\n', encoding="utf-8")
 
     def write_note(self, content):
         (self.course / "notes/t分布.md").write_text(content, encoding="utf-8")
@@ -105,22 +105,22 @@ course: "认知智能"
         self.assertEqual(run.returncode, 0, run.stdout)
 
     def test_T05_missing_review_target(self):
-        (self.course / "review/第三章.md").write_text("![[认知智能/notes/never#核心速览]]\n", encoding="utf-8")
+        (self.course / "review/第三章.md").write_text("![[never#核心速览]]\n", encoding="utf-8")
         run, data = self.run_check()
         self.assertEqual(run.returncode, 1)
         self.assertIn("BROKEN_WIKILINK", self.codes(data))
 
     def test_T05_missing_review_anchor(self):
-        (self.course / "review/第三章.md").write_text("![[认知智能/notes/t分布#其他标题]]\n", encoding="utf-8")
+        (self.course / "review/第三章.md").write_text("![[t分布#其他标题]]\n", encoding="utf-8")
         run, data = self.run_check()
         self.assertEqual(run.returncode, 1)
         self.assertIn("HEADING_ANCHOR", self.codes(data))
 
-    def test_T05_review_bare_basename(self):
+    def test_T05_review_unique_basename(self):
         (self.course / "review/第三章.md").write_text("![[t分布#核心速览]]\n", encoding="utf-8")
         run, data = self.run_check()
-        self.assertEqual(run.returncode, 1)
-        self.assertIn("REVIEW_EMBED_PATH", self.codes(data))
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+        self.assertNotIn("AMBIGUOUS_WIKILINK", self.codes(data))
 
     def test_T06_valid_mermaid_callout(self):
         note = self.course / "notes/t分布.md"
@@ -222,7 +222,7 @@ B --> C
         self.write_note(note.read_text() + "\n[[../../../outside/private.md]]\n")
         run, data = self.run_check()
         self.assertEqual(run.returncode, 1)
-        self.assertIn("LINK_ESCAPE", self.codes(data))
+        self.assertIn("PATH_ESCAPES_VAULT", self.codes(data))
 
     def test_T13_raw_ocr_has_no_core(self):
         (self.course / "raw-markdown/lec01.md").write_text("# 幻灯片 1\n源文本没有速览\n", encoding="utf-8")
