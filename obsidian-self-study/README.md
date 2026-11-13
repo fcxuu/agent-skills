@@ -42,6 +42,7 @@ python3 scripts/check_vault.py --vault "/实际/Vault/路径" --course "实际�
 - **A2：累计 PR 中的已实施改动。** 主入口轻量角色路由；满足可信角色或实际委派收益时才加载多 Agent 规范，委派前完成准入评估与决策记录。
 - **B1：累计 PR 中的已实施改动。** 保留独立规范，采用 Baseline/Stage-Specific/Conditional 三层加载门禁；长任务上下文重锚定、原始 Markdown 与前置笔记切片、最小恢复上下文、已完成内容只读保护。
 - **B2：已在本累计 PR 中实施。** Skill 资产使用 `SKILL_DIR`（`SKILL.md` 所在目录）、课程资料使用 `VAULT_DIR` / `COURSE_DIR`，严格区分只读规则与课程输出；首次跨模块引用使用功能名与精确路径双标，不依赖 `pwd`；缺失规范按依赖级别阻断或跳过。
+- **C1：累计 PR 中的已实施改动。** 增量维护 `raw-markdown/source-map.md`；支持跨课件/非连续来源区间、右边界探测、`[符号对照]` 与冲突隔离，并保持 README 学习导航简洁。来源边界 `verified/unverified` 不替代任务五态。
 - A3 入口规范已满足，留待版本发布时统一检查；其他改进项仍待讨论，未经确认不实施。
 
 ## A1 文档摄取改进
