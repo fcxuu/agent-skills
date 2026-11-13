@@ -11,39 +11,47 @@ metadata:
 
 - 这是**一次性批量构建**工作流：构建与用户后续阅读分离。不要默认开启实时监控、更新同步、已完成章节重生成或批注合并。
 - 用户指定的已有 Obsidian Vault 与课程目录是工作边界。**不要创建额外的 `ObsidianVault/`、`Courses/` 根目录**，不得擅自移动课件、覆盖重要文件或改动 `.obsidian/`。示例：Vault 根目录可以直接是 `/path/to/lectures/`，某课程目录为其下 `认知智能/`；此绝对路径只是通用路径示例，实际运行必须检查后使用。
-- 同一课程内的多份 PDF/PPT/讲义，视作一套课程材料，按材料实际顺序组织成一门课。原始 OCR 中间产物**每份源课件对应一个完整 Markdown**；最终教学笔记以小节为主、重要独立知识按需拆分。
+- 同一课程内的多份 PDF/PPT/讲义，视作一套课程材料，按材料实际顺序组织成一门课。原始摄取产物**每份源课件对应一个完整 Markdown**；最终教学笔记以小节为主、重要独立知识按需拆分。
 - 产物是同一套融合了**精炼课堂笔记风格**与**系统自学教材风格**的笔记，而非两套重复讲义。保留原教材表达和推导深度，重点修复阻碍理解的关键跳步。教师式家教讲解是未来单独模式，不在本 Skill 范围内。
 - 核心定义、必要图解、重要假设与关键桥接保持展开；较长证明、例题答案及补充拓展默认折叠。用原生 Obsidian Callout、MathJax 与双链；**原教材已有公式编号保留，新增公式默认不编号**。
 - 主动核实事实，不因 OCR 错误、疑似定理或缺失图片而猜测。未经确认的关键内容必须局部隔离，且在 QA 中记录依赖影响。
 - 整门课在当前实际执行环境及额度范围内自主推进：**小节保存检查点，章节报告，最后统一交付**。小节失败先记录、跳过独立内容，最终可 `completed_with_issues` 交付。不要假装后台持续运行。
 
+## 模块加载门禁（跨平台通用）
+
+- **Baseline（启动/恢复/交付）**：本 `SKILL.md` 的安全和教学底线始终有效；仅在启动、断点恢复、最终交付或规则丢失时读取 `references/00-preflight.md`、`references/07-execution.md`，逐节生成时不机械重读。
+- **Stage-Specific（进入对应阶段时）**：源材料摄取读 `references/01-ingestion.md`；笔记撰写读 `references/02-pedagogy.md` 与 `references/03-obsidian-style.md`；知识索引/复习入口读 `references/05-knowledge.md`；执行 L1/L2/L3 验收时读 `references/06-quality.md`。不在普通小节正文写作期间额外加载其他阶段的完整规范。
+- **Conditional（条件触发）**：涉及原图提取、补图、重绘或复杂图文时读 `references/04-images.md`；符合 A2 的 Worker/Commander 门槛时读 `references/08-multi-agent.md`；`templates/note.template.md`、`templates/README.template.md`、`templates/QA.template.md`、`templates/review.template.md` 仅在首次创建对应类型产物或核对字段骨架时分别读取，不全量加载。
+- **复用与重锚定**：同会话同阶段已读且仍可靠可用的规范直接复用。发生上下文压缩/摘要，或长程跨章后无法确认先前规范仍在有效上下文时，先重新读取**当前阶段核心规范**再生成，禁止依赖模糊记忆猜测格式。不得以节省 Token 为由削减数学严谨性、来源追溯、公式/图表校验或 QA。
+- **数据侧切片**：完整 `raw-markdown/` 只存于磁盘；每次按目标小节标题或可靠页码/行号读取相关片段与少量前置知识，不一次注入大份课件原文。大量工具输出只取必要的路径、区间与证据。
+
 ## 0. 预检（正式构建前必做）
 
-**先读 [任务预检](references/00-preflight.md) 和 [批量执行](references/07-execution.md)。** 判断 Vault/课程目录、材料清单、先前 README/QA、实际文件、文档摄取能力、权限、额度及依赖。尽量自主确定；只有确实缺少必须输入或涉及高风险覆盖时才询问。
+任务启动/恢复时按 Baseline 读取 `references/00-preflight.md` 和 `references/07-execution.md`，检查 Vault/课程目录、文件清单、README/QA、实际文件、文档摄取能力、权限、额度、依赖与当前阶段；尽量自主判断，只有缺少真正必要的输入或涉及高风险覆盖时才询问。
 
 **执行模式分流（默认单 Agent）：** 预检先识别可信指令中的局部 Worker 任务或显式 Commander/多 Agent 要求；二者均按需读取 `references/08-multi-agent.md`。否则，只有**真实可委派工具 + 本次课程明确的并行收益**同时成立才将自己视为 Commander 候选并读取该模块；工具存在本身不触发。未满足条件直接独立构建。Commander 仍须评估后自行决定是否委派，绝不虚构分工结果。
 
 ## 1. 识别资料与文档摄取
 
-按需读 [通用文档摄取规范](references/01-ingestion.md)。先核验并复用已存在的完整 `raw-markdown/`；否则动态发现当前可用的专业文档解析/OCR MCP、本地 CLI/脚本或宿主原生多模态能力，按照**源文件形态、解析质量、资源成本**选择方法，不绑定任何指定 OCR 服务。对新工具或较复杂的大文件优先进行 1–2 页探针；每份课件保存一份完整原始 Markdown 到课程目录 `raw-markdown/`，保留来源、页码/幻灯片与图表位置。在宣布摄取完成前，执行**页/幻灯片覆盖、空页/密度异常、数学公式/编码抽检**；非空文件与工具成功码都不等于成功摄取。失败局部隔离，详细解析过程及异常记录到 QA；源文件仍为第一手核验依据。
+进入摄取阶段时读 `references/01-ingestion.md`（若已可靠加载则复用）。先核验并复用已存在的完整 `raw-markdown/`；否则动态发现当前可用的专业文档解析/OCR MCP、本地 CLI/脚本或宿主原生多模态能力，按照**源文件形态、解析质量、资源成本**选择方法，不绑定任何指定 OCR 服务。对新工具或较复杂的大文件优先进行 1–2 页探针；每份课件保存一份完整原始 Markdown 到课程目录 `raw-markdown/`，保留来源、页码/幻灯片与图表位置。在宣布摄取完成前，执行**页/幻灯片覆盖、空页/密度异常、数学公式/编码抽检**；非空文件与工具成功码都不等于成功摄取。失败局部隔离，详细解析过程及异常记录到 QA；源文件仍为第一手核验依据。
 
 ## 2. 增量规划与教学重构
 
-按需读 [教学原则](references/02-pedagogy.md)、[Obsidian 排版](references/03-obsidian-style.md)、[知识索引](references/05-knowledge.md)。先读课程 `README.md` 的章节索引与重要关键词速查，再按需读取当前课件 OCR 片段及必要前置笔记片段；**不要反复加载整门课正文**。遵循实际教材顺序；对长小节或值得复用的知识点按需拆页。
+进入笔记撰写阶段时读 `references/02-pedagogy.md` 与 `references/03-obsidian-style.md`；知识索引或复习入口操作时才读 `references/05-knowledge.md`。先从课程 `README.md` 的章节索引与关键词速查定位，只读取当前小节源 Markdown 的相关片段及必要前置笔记的 `## 核心速览`/关键定义；**不要反复加载整门课正文**。遵循实际教材顺序；对长小节或值得复用的知识点按需拆页。
 
 每篇正式笔记包含可独立理解的 `## 核心速览` 区域，便于期末复习按标题嵌入。正文的 2A Callout 要突出定义、公式、关键理解和易错点，避免机械地为每条普通句子建立卡片。
 
 ## 3. 图像处理
 
-按需读 [图片规范](references/04-images.md)。原图优先；能可靠提取的原始图表尽量归档，正文只精选有助于学习的图。模糊或不足时，在有可靠依据下重绘/补图；关键图与图注、解释放在**对应 Callout 内**。文件本地可用，来源可追溯，禁止杜撰曲线或数据。
+仅在确实需要原图提取、补图、重绘或复杂图文处理时读 `references/04-images.md`。原图优先；能可靠提取的原始图表尽量归档，正文只精选有助于学习的图。模糊或不足时，在有可靠依据下重绘/补图；关键图与图注、解释放在**对应 Callout 内**。文件本地可用，来源可追溯，禁止杜撰曲线或数据。
 
 ## 4. 检查、保存与恢复
 
-按需读 [QA 规范](references/06-quality.md) 及 [批量执行](references/07-execution.md)，使用 [README 模板](templates/README.template.md)、[QA 模板](templates/QA.template.md)、[笔记模板](templates/note.template.md) 与 [复习模板](templates/review.template.md)（按需读取，不要全部展开到上下文）。
+进入 L1/L2/L3 验收阶段时读 `references/06-quality.md`；恢复或交付时按需复核 `references/07-execution.md`。四份 `templates/` 模板仅在创建对应产物或核对结构时读取单个文件，不要求每节重读。
 
 - 五种小节状态：`pending` → `processing` → `qa_pending` → `completed`；失败则 `failed`。状态和磁盘文件必须相互核对；不能以文件存在替代 QA 通过。
 - 所有笔记做 L1 基础检查；高风险 OCR/数学/关键新增解释做 L2 复核；每章做 L3 综合检查。可使用 `python3 scripts/check_vault.py --vault <VAULT_PATH> --course <COURSE_REL_PATH>` 检查静态路径、链接和结构；它**不能**证明数学正确或 Obsidian 实际渲染无误。
-- 有依据的修复尽量局部进行；同一问题默认最多两次**有实质变化**的自动修复。严重且无法确认的内容隔离，先记录到 `QA.md`，再更新 README 状态；受影响依赖不得误标通过。
+- 有依据的修复尽量局部进行；已通过 QA 的 `completed` 笔记在恢复期间默认只读，不得因重锚定或链接回填覆写；同一问题默认最多两次**有实质变化**的自动修复。严重且无法确认的内容隔离，先记录到 `QA.md`，再更新 README 状态；受影响依赖不得误标通过。
 - 默认由当前构建 Agent 更新课程 README/QA；实际进入多 Agent 协作时依照 `references/08-multi-agent.md` 确立共享文件唯一写入者。
 
 ## 5. 完成交付
