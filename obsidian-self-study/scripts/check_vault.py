@@ -186,8 +186,9 @@ def local_md_target(vault: Path, course: Path, source: Path, raw: str) -> tuple[
         # Optional Markdown title follows whitespace; filenames with spaces
         # should be URL-encoded or wrapped in angle brackets.
         value = re.split(r'\s+(?=["\'])', value, maxsplit=1)[0]
-    value = unquote(value)
+    # Split the literal heading fragment BEFORE unquoting: %23 is part of a filename.
     pathpart, _, anchor = value.partition("#")
+    pathpart, anchor = unquote(pathpart), unquote(anchor)
     if (not pathpart or pathpart.startswith(("/", "~", "\\")) or
             re.match(r"^[a-zA-Z]:[\\/]", pathpart) or
             pathpart.lower().startswith("file:")):
