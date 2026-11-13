@@ -1,6 +1,6 @@
-# Obsidian Self-Study Skill · v0.1 (A1 摄取模块改进分支)
+# Obsidian Self-Study Skill · v0.1（v0.2 改进中）
 
-一套面向**课程课件/教材批量构建**的 Agent Skill 草案：通过当前环境已有的文档解析、OCR 或原生读取能力，将每份课件转换为一份可核验的完整 Markdown，再构建面向 Obsidian 的自学讲义、关键图文、章节复习入口和增量知识索引。包含单 Agent 和 Commander 多 Agent 混合分工约定。
+一套面向**课程课件/教材批量构建**的 Agent Skill 草案：通过当前环境已有的文档解析、OCR 或原生读取能力，将每份课件转换为一份可核验的完整 Markdown，再构建面向 Obsidian 的自学讲义、关键图文、章节复习入口和增量知识索引。默认支持单 Agent 完整构建；识别可信 Worker 分工、显式 Commander 要求，或同时具备真实委派能力和任务并行收益时，才按需加载 Commander/Worker 协作规则。
 
 ## 安装
 
@@ -15,7 +15,7 @@
 ## 文件结构
 
 - `SKILL.md` — 主执行规则，按需指向模块。
-- `references/00-preflight.md` — 执行模式、Commander 规划、任务契约。
+- `references/00-preflight.md` — 轻量任务预检和执行身份判断。
 - `references/01-ingestion.md` — 工具无关的分级文档摄取、文件形态路由、探针与完整性检查。
 - `references/02-pedagogy.md` — 精炼课堂笔记 + 系统自学教材风格。
 - `references/03-obsidian-style.md` — 2A Callout、公式、折叠和复习。
@@ -23,6 +23,7 @@
 - `references/05-knowledge.md` — README、双链、跨课程知识、复习入口。
 - `references/06-quality.md` — 分级 QA、局部修复、依赖风险。
 - `references/07-execution.md` — 五态断点、批量保存、交付。
+- `references/08-multi-agent.md` — **按需加载**：Commander 委派三问（原则上至少两项满足且净收益为正）、Worker 任务契约、共享文件单写入者与决策留痕。
 - `templates/` — README、QA、教学笔记和复习入口的**模板**（不是要无条件照抄的成品）。
 - `scripts/check_vault.py` — 无第三方依赖的只读静态检查，可用来做 L1 的一部分。
 
@@ -35,6 +36,12 @@ python3 scripts/check_vault.py --vault "/实际/Vault/路径" --course "实际�
 
 检查现存的笔记、图片资源、部分 Obsidian 双链和复习入口；不检查 OCR 数学真伪、教材覆盖的深层语义或实际 Obsidian 渲染。不要把脚本输出理解为课程已通过全部 QA。
 
+## 改进记录
+
+- **A1：已合并至 `main`。** 文档摄取工具无关化，覆盖校验与异常记录。
+- **A2：待审查的工作分支改动。** 主入口保留极简角色路由；默认单 Agent；仅在角色/能力及任务规模满足条件时加载多 Agent 规范，实际委派前评估三项准入门槛并记录判断。
+- 其余改进项仍待讨论，未经明确决策不会直接实施。
+
 ## A1 文档摄取改进
 
 - 能力顺序：先复用有效 `raw-markdown/`，再动态发现专业 MCP、本地工具、宿主原生文档读取能力；依据文件形态和质量择优，避免整本教材重复试错。
@@ -45,6 +52,6 @@ python3 scripts/check_vault.py --vault "/实际/Vault/路径" --course "实际�
 ## v0.1 已知边界
 
 - 尚未在真实文档摄取工具、Mac 文件系统和 Obsidian 阅读视图中进行端到端测试。
-- 不提供后台任务调度器，不代替实际可调用的多 Agent 平台；Commander 逻辑是角色和工作约定。
+- 不提供后台任务调度器，不代替实际可调用的多 Agent 平台；默认按单 Agent 执行，多 Agent 模块只在有可信角色要求或实际委派收益时加载。
 - 不包含家教/互动授课模式；不建立教材更新监听或学习期间笔记同步。
 - Agent Skills 语法参考 <https://agentskills.io/specification>；Obsidian 原生 Callout 与嵌入语法见 <https://obsidian.md/help/callouts>、<https://obsidian.md/help/embeds>。
