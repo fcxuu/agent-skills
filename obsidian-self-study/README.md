@@ -1,6 +1,6 @@
-# Obsidian Self-Study Skill · v0.1 (A1 摄取模块改进分支)
+# Obsidian Self-Study Skill · v0.1（v0.2 改进中）
 
-一套面向**课程课件/教材批量构建**的 Agent Skill 草案：通过当前环境已有的文档解析、OCR 或原生读取能力，将每份课件转换为一份可核验的完整 Markdown，再构建面向 Obsidian 的自学讲义、关键图文、章节复习入口和增量知识索引。默认支持单 Agent 完整构建，仅在真实可委派时按需加载 Commander/Worker 协作规则。
+一套面向**课程课件/教材批量构建**的 Agent Skill 草案：通过当前环境已有的文档解析、OCR 或原生读取能力，将每份课件转换为一份可核验的完整 Markdown，再构建面向 Obsidian 的自学讲义、关键图文、章节复习入口和增量知识索引。默认支持单 Agent 完整构建；识别可信 Worker 分工、显式 Commander 要求，或同时具备真实委派能力和任务并行收益时，才按需加载 Commander/Worker 协作规则。
 
 ## 安装
 
@@ -23,7 +23,7 @@
 - `references/05-knowledge.md` — README、双链、跨课程知识、复习入口。
 - `references/06-quality.md` — 分级 QA、局部修复、依赖风险。
 - `references/07-execution.md` — 五态断点、批量保存、交付。
-- `references/08-multi-agent.md` — **按需加载**：Commander 混合分工、Worker 任务契约与共享写入协调。
+- `references/08-multi-agent.md` — **按需加载**：Commander 委派三问（原则上至少两项满足且净收益为正）、Worker 任务契约、共享文件单写入者与决策留痕。
 - `templates/` — README、QA、教学笔记和复习入口的**模板**（不是要无条件照抄的成品）。
 - `scripts/check_vault.py` — 无第三方依赖的只读静态检查，可用来做 L1 的一部分。
 
@@ -35,6 +35,12 @@ python3 scripts/check_vault.py --vault "/实际/Vault/路径" --course "实际�
 ```
 
 检查现存的笔记、图片资源、部分 Obsidian 双链和复习入口；不检查 OCR 数学真伪、教材覆盖的深层语义或实际 Obsidian 渲染。不要把脚本输出理解为课程已通过全部 QA。
+
+## 改进记录
+
+- **A1：已合并至 `main`。** 文档摄取工具无关化，覆盖校验与异常记录。
+- **A2：待审查的工作分支改动。** 主入口保留极简角色路由；默认单 Agent；仅在角色/能力及任务规模满足条件时加载多 Agent 规范，实际委派前评估三项准入门槛并记录判断。
+- 其余改进项仍待讨论，未经明确决策不会直接实施。
 
 ## A1 文档摄取改进
 
