@@ -71,6 +71,6 @@ Commander 派发任务时必须明确：
 ## 交付与恢复
 
 - Worker 中断/超时：协调者保留真实已交付文件与状态；检查是否可继续、重分配或记录失败，不擅自推断未返回的任务已完成。
-- Worker 报告失败：按 `references/06-quality.md` 隔离严重问题、传播依赖风险；继续其他独立任务。
-- 章级 L3 和课程级最终交付由协调者负责，按 `references/07-execution.md` 判定 `completed` / `completed_with_issues` / `interrupted`；仅报告实际执行过的检查。
+- Worker 报告失败：按 QA 规范（`references/06-quality.md`）隔离严重问题、传播依赖风险；继续其他独立任务。
+- 章级 L3 和课程级最终交付由协调者负责，按批量执行与恢复规范（`references/07-execution.md`）判定 `completed` / `completed_with_issues` / `interrupted`；仅报告实际执行过的检查。
 - 不强制开发 Agent 调度框架或后台服务；使用宿主当前真实支持的委派工具。不得假装可以后台执行或跨客户端调用 Agent。
