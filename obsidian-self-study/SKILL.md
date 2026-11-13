@@ -21,7 +21,7 @@ metadata:
 
 - **`SKILL_DIR`** 是当前 `SKILL.md` 所在的**真实 Skill 安装目录**。优先从宿主提供的 `SKILL.md` 路径取其父目录；若宿主只提供文本，先查当前项目已知的标准安装目录（如 `.agents/skills/obsidian-self-study/`），再查用户级目录（如 `~/.agents/skills/obsidian-self-study/`）；必要时按宿主实际支持的 Skill 目录定位。每个候选必须核验实际 `SKILL.md`；有多个匹配且无法确定本次加载来源时，不得任意猜测。**绝不把 `pwd` 直接当成 `SKILL_DIR`。**
 - **Skill 内部只读资产**：`SKILL.md`、`references/`、`templates/`、`scripts/` 的路径以 `SKILL_DIR` 为基准；不得向 Skill 安装目录写入课程笔记、原始 Markdown、QA 或临时日志。
-- **用户课程数据**：`VAULT_DIR` 为已确认的 Obsidian Vault 根目录，`COURSE_DIR` 为其中既有课程目录；`README.md`、`QA.md`、`raw-markdown/`、`notes/`、`assets/`、`review/` 均属于 `COURSE_DIR`。两套命名空间不得混用，不擅自搬移源资料或修改 `.obsidian/`。
+- **用户课程数据**：`VAULT_DIR` 为已确认的 Obsidian Vault 根目录，`COURSE_DIR` 为其中既有课程目录；`.build-state.json`、`README.md`、`QA.md`、`raw-markdown/`、`notes/`、`assets/`、`review/` 均属于 `COURSE_DIR`。两套命名空间不得混用，不擅自搬移源资料或修改 `.obsidian/`。
 - **按需读取故障**：需加载内部文件时先核对路径和实际存在性，不通过中文别名猜测替代文件；当前阶段必需文件缺失则暂停其依赖操作并记录受阻位置，未触发的条件文件不阻碍其他独立工作。不得宣称读过无法读取的规范。
 
 ## 模块加载门禁（跨平台通用）
@@ -58,13 +58,13 @@ metadata:
 
 进入 L1/L2/L3 验收阶段时读 QA 规范（`references/06-quality.md`）；恢复或交付时按需复核批量执行/恢复规范（`references/07-execution.md`）。四份 `templates/` 模板仅在创建对应产物或核对结构时读取单个文件，不要求每节重读。
 
-- 五种小节状态：`pending` → `processing` → `qa_pending` → `completed`；失败则 `failed`。状态和磁盘文件必须相互核对；不能以文件存在替代 QA 通过。
+- 小节五态（`pending` / `processing` / `qa_pending` / `completed` / `failed`）由课程根目录 `.build-state.json` 持久化；`README.md` 仅为学生导航及检查点进度投影，`QA.md` 为证据台账，C1 的 `source-map.md` 只管源边界。按**实际文件与 QA 证据 > JSON > README**恢复；`completed` 必须存在非空笔记且通过必要 QA，自动恢复时默认只读。
 - 所有笔记做 L1 基础检查；高风险 OCR/数学/关键新增解释做 L2 复核；每章做 L3 综合检查。可使用 `python3 scripts/check_vault.py --vault <VAULT_PATH> --course <COURSE_REL_PATH>` 检查静态路径、链接和结构；它**不能**证明数学正确或 Obsidian 实际渲染无误。
-- 有依据的修复尽量局部进行；已通过 QA 的 `completed` 笔记在恢复期间默认只读，不得因重锚定或链接回填覆写；同一问题默认最多两次**有实质变化**的自动修复。严重且无法确认的内容隔离，先记录到 `QA.md`，再更新 README 状态；受影响依赖不得误标通过。
-- 默认由当前构建 Agent 更新课程 README/QA；实际进入多 Agent 协作时依照多 Agent 协作规范（`references/08-multi-agent.md`） 确立共享文件唯一写入者。
+- 有依据的修复尽量局部进行；已通过 QA 的 `completed` 笔记在恢复期间默认只读；同一问题默认最多两次**有实质变化**的自动修复。严重且无法确认的内容先写 `QA.md` 记录，再安全写入 `.build-state.json` 的失败状态，`README.md` 在检查点同步；受影响依赖不得误标通过。
+- 默认由当前构建 Agent 更新课程 `.build-state.json`、README/QA 和来源映射；多 Agent 时依照多 Agent 协作规范（`references/08-multi-agent.md`）由唯一协调者写入全部共享文件。
 
 ## 5. 完成交付
 
-课程级状态：`in_progress` / `completed` / `completed_with_issues` / `interrupted`。已尝试所有计划小节且完成章级检查后，即使存在已记录失败也直接交付已完成内容、`README.md`、`QA.md`、本地图像和复习入口；不要为失败项阻滞整书交付。若额度/环境中断且仍有未尝试小节，标 `interrupted`，留下可恢复检查点，不谎报已结束。
+课程级状态：`in_progress` / `completed` / `completed_with_issues` / `interrupted`。已尝试所有计划小节且完成章级检查后，即使存在已记录失败也直接交付已完成内容、`README.md`、`QA.md`、本地图像和复习入口；不要为失败项阻滞整书交付。若额度/环境中断且仍有未尝试小节，标 `interrupted`，写入真实的 `.build-state.json` 检查点并同步必要 README 摘要，不谎报已结束。
 
 最终摘要至少写明：源资料摄取成功/失败数及覆盖异常、计划小节数、完成/失败/未处理数、未解决 P0 与依赖影响、复习入口位置、静态检查与 L2/L3 的真实覆盖范围，以及下一步人工/强 Agent 修复线索。**不得写入虚构的成功、验证或工具调用记录。**
