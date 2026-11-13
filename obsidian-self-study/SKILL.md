@@ -59,7 +59,7 @@ metadata:
 进入 L1/L2/L3 验收阶段时读 QA 规范（`references/06-quality.md`）；恢复或交付时按需复核批量执行/恢复规范（`references/07-execution.md`）。四份 `templates/` 模板仅在创建对应产物或核对结构时读取单个文件，不要求每节重读。
 
 - 小节五态（`pending` / `processing` / `qa_pending` / `completed` / `failed`）由课程根目录 `.build-state.json` 持久化；`README.md` 仅为学生导航及检查点进度投影，`QA.md` 为证据台账，C1 的 `source-map.md` 只管源边界。按**实际文件与 QA 证据 > JSON > README**恢复；`completed` 必须存在非空笔记且通过必要 QA，自动恢复时默认只读。
-- 所有笔记做 L1 基础检查；高风险 OCR/数学/关键新增解释做 L2 复核；每章做 L3 综合检查。可使用 `python3 scripts/check_vault.py --vault <VAULT_PATH> --course <COURSE_REL_PATH>` 检查静态路径、链接和结构；它**不能**证明数学正确或 Obsidian 实际渲染无误。
+- 所有笔记做 L1 基础检查；高风险 OCR/数学/关键新增解释做 L2 复核；每章做 L3 综合检查。可在预检确认实际 Skill 根目录后使用 `python3 "$SKILL_DIR/scripts/check_vault.py" --vault "$VAULT_DIR" --course "$COURSE_DIR" --json` 执行**只读 L1 静态检查**；`--course` 同时支持 Vault 内的相对或绝对路径。脚本报告的 `not_checked` 包括数学、OCR、图表真实性、L2/L3 与实际 Obsidian 渲染，退出码 0 **不等于整门课程 QA 通过**。
 - 有依据的修复尽量局部进行；已通过 QA 的 `completed` 笔记在恢复期间默认只读；同一问题默认最多两次**有实质变化**的自动修复。严重且无法确认的内容先写 `QA.md` 记录，再安全写入 `.build-state.json` 的失败状态，`README.md` 在检查点同步；受影响依赖不得误标通过。
 - 默认由当前构建 Agent 更新课程 `.build-state.json`、README/QA 和来源映射；多 Agent 时依照多 Agent 协作规范（`references/08-multi-agent.md`）由唯一协调者写入全部共享文件。
 
