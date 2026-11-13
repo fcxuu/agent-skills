@@ -349,6 +349,15 @@ B --> C
         run, data = self.run_portable(course, ".")
         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
 
+    def test_relative_image_with_percent_encoded_hash(self):
+        _, _, course, note = self.portable_tree()
+        (course / "assets/original/P05/fig#1.png").write_bytes(b"png")
+        note.write_text(note.read_text() +
+                        "\n![带井号图片|350](../../assets/original/P05/fig%231.png)\n"
+                        "**图注 [原图]**：源课件 P.38。")
+        run, data = self.run_portable(course, ".")
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
     def test_os_absolute_image_forbidden(self):
         _, _, course, note = self.portable_tree()
         note.write_text(note.read_text() + "\n![原图](file:///Users/test/fig.png)")
