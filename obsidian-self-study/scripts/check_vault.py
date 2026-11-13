@@ -430,8 +430,8 @@ def lint(vault: Path, course: Path) -> dict:
                         emit("error", "REVIEW_EMBED_PATH", file, line_no,
                              f"复习内嵌须为当前 Vault 唯一笔记文件名 + #核心速览：{destination}")
                 elif resolved and ("/" in pathpart or "\\" in pathpart or pathpart.startswith(".")):
-                    emit("warning", "VAULT_DEPENDENT_WIKILINK", file, line_no,
-                         f"旧式路径 WikiLink 可能依赖打开的 Vault 根目录，改用文件相对 Markdown 链接：{destination}")
+                    emit("error", "VAULT_DEPENDENT_WIKILINK", file, line_no,
+                         f"旧式带目录 WikiLink 依赖 Vault 路径或非标准 ../，改用文件相对 Markdown 链接：{destination}")
                 if sep and resolved and resolved.suffix.casefold() == ".md" and not anchor.startswith("^"):
                     try:
                         targets, _ = scan_markdown(resolved.read_text(encoding="utf-8"))
