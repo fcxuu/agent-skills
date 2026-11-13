@@ -14,7 +14,8 @@ from pathlib import Path
 from urllib.parse import unquote
 
 WIKI = re.compile(r"!?\[\[([^\]\n]+)\]\]")
-IMAGE_MD = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+IMAGE_MD = re.compile(r"!\[([^\]\n]*)\]\((<[^>\n]+>|[^)\n]+)\)")
+LINK_MD = re.compile(r"(?<!!)\[([^\]\n]+)\]\((<[^>\n]+>|[^)\n]+)\)")
 HEADING = re.compile(r"^ {0,3}(#{1,6})[ \t]+(.+?)[ \t]*$", re.M)
 CALLOUT = re.compile(r"^\s*>\s*\[!(\w+)\]([+-]?)\s*(.*)$", re.I)
 FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})([^\r\n]*)$")
@@ -172,6 +173,54 @@ def resolve_wiki(vault: Path, source: Path, target: str, names: dict[str, list[P
     return None, False, "missing"
 
 
+def local_md_target(vault: Path, course: Path, source: Path, raw: str) -> tuple[Path | None, str, str]:
+    """Resolve Markdown URL from *source file*, never from Vault cwd.
+
+    Returns (resolved, status, anchor). Resolve symlinks before checking both
+    containment boundaries. A legitimate ../../assets path is allowed.
+    """
+    value = raw.strip()
+    if value.startswith("<") and value.endswith(">"):
+        value = value[1:-1]
+    else:
+        # Optional Markdown title follows whitespace; filenames with spaces
+        # should be URL-encoded or wrapped in angle brackets.
+        value = re.split(r'\s+(?=["\'])', value, maxsplit=1)[0]
+    # Split the literal heading fragment BEFORE unquoting: %23 is part of a filename.
+    pathpart, _, anchor = value.partition("#")
+    pathpart, anchor = unquote(pathpart), unquote(anchor)
+    if (not pathpart or pathpart.startswith(("/", "~", "\\")) or
+            re.match(r"^[a-zA-Z]:[\\/]", pathpart) or
+            pathpart.lower().startswith("file:")):
+        return None, "absolute", anchor
+    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", pathpart):
+        return None, "external", anchor
+    if "?" in pathpart:
+        # Query strings are not safe local filesystem references.
+        return None, "invalid", anchor
+    dest = (source.parent / pathpart).resolve()
+    if not dest.is_relative_to(vault):
+        return None, "escape_vault", anchor
+    if not dest.is_relative_to(course):
+        return None, "escape_course", anchor
+    if not dest.is_file():
+        return dest, "missing", anchor
+    return dest, "ok", anchor
+
+
+def image_evidence(lines: list[str], line_no: int, file: Path, emit) -> None:
+    """L1 checks for a local figure's neighboring provenance caption."""
+    nearby = "\n".join(lines[line_no:min(len(lines), line_no + 6)])
+    labels = SOURCE_LABEL.findall(nearby)
+    if not labels:
+        emit("warning", "IMAGE_PROVENANCE", file, line_no,
+             "图片附近缺少 [原图]/[忠实重绘]/[教学示意] 图注")
+    if ("[忠实重绘]" in labels and "assets/original/" not in nearby and
+            "原图无法" not in nearby and "不可提取" not in nearby):
+        emit("warning", "IMAGE_ORIGINAL_EVIDENCE", file, line_no,
+             "忠实重绘未标明原图对照路径或不可提取说明")
+
+
 def course_path_from_ref(course: Path, relative: str) -> Path | None:
     if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
         return None
@@ -298,7 +347,7 @@ def lint(vault: Path, course: Path) -> dict:
                         pass
             except (OSError, UnicodeError) as exc:
                 emit("error", "RAW_UNREADABLE", raw, 0, f"原始 Markdown 无法读取：{exc}")
-    for file in notes + review:
+    for file in notes + review + ([course / "README.md"] if (course / "README.md").is_file() else []):
         if not file.resolve().is_relative_to(course):
             emit("error", "NOTE_ESCAPE", file, 0, "笔记/复习文件符号链接越出课程目录，拒绝读取")
             continue
@@ -349,20 +398,40 @@ def lint(vault: Path, course: Path) -> dict:
                 is_embed = match.group(0).startswith("!")
                 destination = raw.split("|", 1)[0]
                 pathpart, sep, anchor = destination.partition("#")
+                if (pathpart.startswith(("/", "~")) or
+                        pathpart.lower().startswith("file:")):
+                    emit("error", "OS_ABSOLUTE_PATH_FORBIDDEN", file, line_no,
+                         f"禁止绝对路径或 file URI：{destination}")
+                    continue
                 resolved, ambiguous, status = resolve_wiki(vault, file, pathpart, names)
                 if status == "escape":
-                    emit("error", "LINK_ESCAPE", file, line_no, f"引用越过 Vault 边界：{destination}")
+                    emit("error", "PATH_ESCAPES_VAULT", file, line_no, f"引用越过 Vault：{destination}")
                     continue
                 if status != "ok":
                     emit("error", "BROKEN_WIKILINK", file, line_no, f"目标不存在：{destination}")
                     continue
                 if ambiguous:
-                    emit("warning", "AMBIGUOUS_WIKILINK", file, line_no, f"同名目标不唯一：{destination}")
-                if file in review and is_embed and resolved and resolved.suffix == ".md":
-                    prefix = pathpart.replace("\\", "/")
-                    expected = course.relative_to(vault).as_posix() + "/notes/"
-                    if not prefix.startswith(expected) or prefix.endswith(".md") or anchor != "核心速览":
-                        emit("error", "REVIEW_EMBED_PATH", file, line_no, f"复习嵌入应使用完整课程路径并指向核心速览：{destination}")
+                    severity = "error" if file in review and is_embed else "warning"
+                    emit(severity, "AMBIGUOUS_WIKILINK", file, line_no,
+                         f"同名目标不唯一，禁止自动选择：{destination}")
+                    # For section transclusion, never pick an arbitrary candidate.
+                    if file in review and is_embed:
+                        continue
+                if resolved and not resolved.is_relative_to(course):
+                    emit("error", "PATH_ESCAPES_COURSE", file, line_no,
+                         f"课程链接不自包含：{destination}")
+                    continue
+                if file in review and is_embed and resolved and resolved.suffix.lower() == ".md":
+                    # Obsidian's documented section transclusion is ![[name#heading]],
+                    # NOT ![alt](note.md#heading) (which is a Markdown image).
+                    if ("/" in pathpart or "\\" in pathpart or
+                            pathpart.endswith(".md") or anchor != "核心速览" or
+                            not resolved.is_relative_to(course / "notes")):
+                        emit("error", "REVIEW_EMBED_PATH", file, line_no,
+                             f"复习内嵌须为当前 Vault 唯一笔记文件名 + #核心速览：{destination}")
+                elif resolved and ("/" in pathpart or "\\" in pathpart or pathpart.startswith(".")):
+                    emit("error", "VAULT_DEPENDENT_WIKILINK", file, line_no,
+                         f"旧式带目录 WikiLink 依赖 Vault 路径或非标准 ../，改用文件相对 Markdown 链接：{destination}")
                 if sep and resolved and resolved.suffix.casefold() == ".md" and not anchor.startswith("^"):
                     try:
                         targets, _ = scan_markdown(resolved.read_text(encoding="utf-8"))
@@ -370,24 +439,56 @@ def lint(vault: Path, course: Path) -> dict:
                     except (OSError, UnicodeError):
                         present = False
                     if not present:
-                        sev = "error" if file in review and is_embed else "warning"
-                        emit(sev, "HEADING_ANCHOR", file, line_no, f"目标无标题锚点：{destination}")
-                if is_embed and resolved and resolved.suffix.casefold() in IMAGE_TYPES and file in notes:
-                    nearby = "\n".join(lines[line_no:min(len(lines), line_no + 6)])
-                    labels = SOURCE_LABEL.findall(nearby)
-                    if not labels:
-                        emit("warning", "IMAGE_PROVENANCE", file, line_no, "图片附近缺少 [原图]/[忠实重绘]/[教学示意] 图注")
-                    if "[忠实重绘]" in labels and "assets/original/" not in nearby and "原图无法" not in nearby and "不可提取" not in nearby:
-                        emit("warning", "IMAGE_ORIGINAL_EVIDENCE", file, line_no, "忠实重绘未标明原图对照路径或不可提取说明")
-            for match in IMAGE_MD.finditer(line):
-                raw = match.group(1).strip().split(" ", 1)[0].strip("<>\"'")
-                if raw.startswith(("https://", "http://", "data:")):
-                    continue
-                dest = (file.parent / unquote(raw).split("#", 1)[0]).resolve()
-                if not dest.is_relative_to(vault):
-                    emit("error", "LINK_ESCAPE", file, line_no, f"图片路径越界：{raw}")
-                elif not dest.is_file():
-                    emit("error", "BROKEN_MARKDOWN_IMAGE", file, line_no, f"图片目标不存在：{raw}")
+                        severity = "error" if file in review and is_embed else "warning"
+                        emit(severity, "HEADING_ANCHOR", file, line_no,
+                             f"目标无标题锚点：{destination}")
+                if is_embed and resolved and resolved.suffix.casefold() in IMAGE_TYPES:
+                    emit("warning", "LEGACY_IMAGE_WIKILINK", file, line_no,
+                         "图片应使用当前 Markdown 文件相对的 ![描述|宽度](../../assets/...)")
+                    if file in notes:
+                        image_evidence(lines, line_no, file, emit)
+            # Ordinary Markdown image and note hyperlinks are relative to the
+            # *containing file*, even when Vault root changes.
+            for pattern, is_image in ((IMAGE_MD, True), (LINK_MD, False)):
+                for match in pattern.finditer(line):
+                    raw = match.group(2)
+                    resolved, status, anchor = local_md_target(vault, course, file, raw)
+                    if status == "external":
+                        continue
+                    if status == "absolute":
+                        emit("error", "OS_ABSOLUTE_PATH_FORBIDDEN", file, line_no,
+                             f"禁止操作系统绝对路径：{raw}")
+                        continue
+                    if status in {"escape_vault", "escape_course"}:
+                        code = "PATH_ESCAPES_VAULT" if status == "escape_vault" else "PATH_ESCAPES_COURSE"
+                        emit("error", code, file, line_no, f"链接越出允许目录：{raw}")
+                        continue
+                    if status == "invalid":
+                        emit("warning", "MARKDOWN_LINK_UNCHECKED", file, line_no,
+                             f"无法确定解析该链接：{raw}")
+                        continue
+                    if status != "ok":
+                        code = "BROKEN_MARKDOWN_IMAGE" if is_image else "BROKEN_MARKDOWN_LINK"
+                        emit("error", code, file, line_no, f"目标不存在：{raw}")
+                        continue
+                    if is_image:
+                        if resolved.suffix.casefold() == ".md" and file in review:
+                            emit("error", "REVIEW_MARKDOWN_NOT_EMBED", file, line_no,
+                                 "Markdown 图片语法不能视为已验证的笔记标题嵌入；请使用唯一文件名 Wiki 嵌入")
+                        elif resolved.suffix.casefold() not in IMAGE_TYPES:
+                            emit("warning", "IMAGE_UNKNOWN_FORMAT", file, line_no,
+                                 f"图片目标并非已支持的本地图像格式：{raw}")
+                        if file in notes and resolved.suffix.casefold() in IMAGE_TYPES:
+                            image_evidence(lines, line_no, file, emit)
+                    elif resolved.suffix.casefold() == ".md" and anchor:
+                        try:
+                            hlines, _ = scan_markdown(resolved.read_text(encoding="utf-8"))
+                            exists = unquote(anchor) in heading_targets(hlines)
+                        except (OSError, UnicodeError):
+                            exists = False
+                        if not exists:
+                            emit("warning", "HEADING_ANCHOR", file, line_no,
+                                 f"目标没有对应的标题：{raw}")
     return report(vault, course, issues, len(notes), len(review), course_state)
 
 
@@ -416,8 +517,8 @@ def main() -> int:
         parser.error(f"Vault 不存在或不是目录：{vault}")
     course_arg = Path(args.course).expanduser()
     course = (course_arg if course_arg.is_absolute() else vault / course_arg).resolve()
-    if not course.is_relative_to(vault) or course == vault:
-        parser.error("课程必须严格位于 Vault 子目录之内，禁止越界")
+    if not course.is_relative_to(vault):
+        parser.error("课程必须位于 Vault 内（允许课程目录即 Vault 根目录），禁止越界")
     if not course.is_dir():
         parser.error(f"课程目录不存在：{course}")
     result = lint(vault, course)

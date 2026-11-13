@@ -27,6 +27,10 @@
 - `templates/` — README、QA、教学笔记和复习入口的**模板**（不是要无条件照抄的成品）。
 - `scripts/check_vault.py` — 无第三方依赖的只读静态检查，可用来做 L1 的一部分。
 
+## Vault 根目录切换与链接兼容
+
+当前笔记中的图片与普通知识跳转采用**当前 Markdown 文件相对路径**，而不是生成时的 Vault 相对路径或 macOS 绝对路径。例如从 `notes/ch05/foo.md` 使用 `![原图|550](../../assets/original/P05/fig.png)` 和 `[前置知识](ch05-03-prev.md)`。复习标题嵌入因 Obsidian 原生机制需要 `![[唯一文件名#核心速览]]`，须检查完整 Vault 内的同名冲突；冲突时使用相对 Markdown **普通跳转**而不保证内嵌。不把 `![alt](note.md#heading)` 当作已核实的标题嵌入语法。课程目录本身可作为 Vault 根，`--course .` 合法。
+
 ## 静态检查
 
 ```bash
@@ -37,7 +41,7 @@ COURSE_DIR="$VAULT_DIR/实际课程文件夹"
 python3 "$SKILL_DIR/scripts/check_vault.py" \
   --vault "$VAULT_DIR" --course "$COURSE_DIR" --json
 
-# --course 也可传 Vault 内相对路径，如 --course "认知智能"
+# --course 也可传 Vault 内相对路径（包含表示课程即 Vault 的 '.'），如 --course "认知智能"
 python3 -m unittest discover -s "$SKILL_DIR/tests" -v
 ```
 
@@ -52,6 +56,7 @@ python3 -m unittest discover -s "$SKILL_DIR/tests" -v
 - **C1：累计 PR 中的已实施改动。** 增量维护 `raw-markdown/source-map.md`；支持跨课件/非连续来源区间、右边界探测、`[符号对照]` 与冲突隔离，并保持 README 学习导航简洁。来源边界 `verified/unverified` 不替代任务五态。
 - **D1：本累计 PR 中的已实施改动。** 课程根目录 `.build-state.json` 维护五态机器状态、SHA-256 来源指纹与断点；README 为检查点同步的学习导航；磁盘+QA 证据优先仲裁，已完成笔记恢复时只读，单写入协调与 C1 源边界状态互不混淆。
 - **E3：已实施。** 只读 Python 标准库检查器升级为轻量词法扫描，支持 E1/D1/E2 的确定性结构验收、JSON 物理证据检查、反误报、路径越界防护、稳定 JSON 与 `not_checked`；临时 Vault 26 项回归测试通过。
+- **可迁移链接增强（PR）**：图片、普通导航按包含文件相对路径；复习内嵌仅对唯一文件名使用原生语法，支持 `COURSE_DIR == VAULT_DIR` 并检查课程自包含路径边界。真实课程的历史 `completed` 笔记不在本次代码改造中被自动修改。
 - A3 入口规范已满足，留待版本发布时统一检查；其他改进项仍待讨论，未经确认不实施。
 
 ## A1 文档摄取改进

@@ -31,20 +31,20 @@
 ## 本地归档与就近排版
 
 - 两类资产固定在现有课程目录的 `assets/original/` 与 `assets/generated/`；按需创建，**不移动/重命名用户既有素材**，不引入外部图床或资产数据库。
-- 文件名可带课件、页码/图序或语义标识，例如 `source04_p018_fig02.png`、`t-vs-normal.svg`；**嵌入必须使用实际存在的完整 Vault 相对路径**（例如 `![[认知智能/assets/original/source04_p018_fig02.png|550]]`），同名消歧。
+- 文件名可带课件、页码/图序或语义标识，例如 `source04_p018_fig02.png`、`t-vs-normal.svg`；**图片必须使用相对于当前 Markdown 文件所在目录的标准 Markdown 相对路径**，不写生成时 Vault 前缀，也不写 `/Users/...` 绝对路径。从 `notes/ch05/example.md` 指向 `assets/original/P05/fig.png` 应计算为 `../../assets/original/P05/fig.png`，嵌入语法是 `![图像说明|550](../../assets/original/P05/fig.png)`，保留 Obsidian 图片宽度扩展。相同文件名不会引发歧义。
 - 重要图紧邻定义、公式或算法步骤，**置于对应默认展开的 Callout 内**，紧挨图注和「看什么/为什么重要」说明；非关键附图允许折叠。无关装饰图不生成。
 
 ````markdown
 > [!tip] 主成分方向与投影
 > 数学条件：$ \max_{\|w\|=1} w^\top S w $。
 >
-> ![[认知智能/assets/generated/pca.svg|550]]
+> ![PC1 投影示意|550](../../assets/generated/pca.svg)
 >
 > **图 2.1 [教学示意]**：以教学示例数据说明 PC1 投影方向；并非原课件实验结果。
 > **观察**：沿 PC1 的投影方差较大。
 ````
 
-以上路径及图只作语法示例，必须替换为实际存在的资产；没有真实图文件时删除嵌入，而不是留下死链。
+以上示例假定笔记位于 `notes/chXX/`；若笔记在 `notes/` 或更深层目录，必须重新计算真实相对路径，不可照搬 `../../`。路径按 `os.path.relpath(目标文件绝对路径, start=当前笔记.parent)` 计算，再转 POSIX `/`；目标必须位于 `COURSE_DIR`。含空格、括号、`#` 等字符需按 Markdown/URL 正确编码，不擅自重命名现有素材。未生成真实图文件时删除嵌入，不留下死链。
 
 ## 确定性绘图与深浅色主题可读性
 

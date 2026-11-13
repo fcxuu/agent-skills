@@ -21,7 +21,8 @@ metadata:
 
 - **`SKILL_DIR`** 是当前 `SKILL.md` 所在的**真实 Skill 安装目录**。优先从宿主提供的 `SKILL.md` 路径取其父目录；若宿主只提供文本，先查当前项目已知的标准安装目录（如 `.agents/skills/obsidian-self-study/`），再查用户级目录（如 `~/.agents/skills/obsidian-self-study/`）；必要时按宿主实际支持的 Skill 目录定位。每个候选必须核验实际 `SKILL.md`；有多个匹配且无法确定本次加载来源时，不得任意猜测。**绝不把 `pwd` 直接当成 `SKILL_DIR`。**
 - **Skill 内部只读资产**：`SKILL.md`、`references/`、`templates/`、`scripts/` 的路径以 `SKILL_DIR` 为基准；不得向 Skill 安装目录写入课程笔记、原始 Markdown、QA 或临时日志。
-- **用户课程数据**：`VAULT_DIR` 为已确认的 Obsidian Vault 根目录，`COURSE_DIR` 为其中既有课程目录；`.build-state.json`、`README.md`、`QA.md`、`raw-markdown/`、`notes/`、`assets/`、`review/` 均属于 `COURSE_DIR`。两套命名空间不得混用，不擅自搬移源资料或修改 `.obsidian/`。
+- **用户课程数据**：`VAULT_DIR` 为已确认的 Obsidian Vault 根目录，`COURSE_DIR` 为其中既有课程目录（允许 `COURSE_DIR == VAULT_DIR`，即直接将课程目录作为 Vault）；`.build-state.json`、`README.md`、`QA.md`、`raw-markdown/`、`notes/`、`assets/`、`review/` 均属于 `COURSE_DIR`。两套命名空间不得混用，不擅自搬移源资料或修改 `.obsidian/`。
+- **可迁移课程链接**：图片使用相对于当前 `.md` 的 `![图示|550](../../assets/...)`，普通笔记/README 跳转使用 `[名称](../笔记.md)`；从当前文件的父目录用 `os.path.relpath` 或等价方法**计算**层级，不猜测 `../`，目标必须位于 `COURSE_DIR` 内。复习速览保留原生 `![[全 Vault 唯一文件名#核心速览]]`；重名则改成文件相对的普通跳转并登记 QA，不能冒充内嵌。已完成笔记未经明确用户授权不得批量迁移链接。
 - **按需读取故障**：需加载内部文件时先核对路径和实际存在性，不通过中文别名猜测替代文件；当前阶段必需文件缺失则暂停其依赖操作并记录受阻位置，未触发的条件文件不阻碍其他独立工作。不得宣称读过无法读取的规范。
 
 ## 模块加载门禁（跨平台通用）
