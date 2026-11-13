@@ -20,7 +20,7 @@ skill存储与编写/
 ├── obsidian-self-study/       # Obsidian 课程自学笔记构建
 │   ├── README.md              # 使用说明
 │   ├── SKILL.md               # skill 指令
-│   ├── references/            # 预检、OCR、教学、排版和质量检查等规范
+│   ├── references/            # 预检、文档摄取、教学、排版和质量检查等规范
 │   ├── scripts/               # Vault 检查脚本
 │   ├── templates/             # 笔记、索引与 QA 模板
 │   └── tests/                 # 检查脚本的测试
@@ -45,7 +45,7 @@ skill存储与编写/
 
 ## Git 维护
 
-本目录使用本地 Git 仓库记录文件变更，不会自动上传或同步到远程。常用命令（在本目录运行）：
+本目录使用 Git 记录文件变更，已关联公开仓库 [fcxuu/agent-skills](https://github.com/fcxuu/agent-skills)。本地修改不会自动上传；远程更新也需要主动拉取。常用命令（在本目录运行）：
 
 ```bash
 git status                 # 查看变更
