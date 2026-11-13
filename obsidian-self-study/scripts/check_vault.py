@@ -14,7 +14,8 @@ from pathlib import Path
 from urllib.parse import unquote
 
 WIKI = re.compile(r"!?\[\[([^\]\n]+)\]\]")
-IMAGE_MD = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+IMAGE_MD = re.compile(r"!\[([^\]\n]*)\]\((<[^>\n]+>|[^)\n]+)\)")
+LINK_MD = re.compile(r"(?<!!)\[([^\]\n]+)\]\((<[^>\n]+>|[^)\n]+)\)")
 HEADING = re.compile(r"^ {0,3}(#{1,6})[ \t]+(.+?)[ \t]*$", re.M)
 CALLOUT = re.compile(r"^\s*>\s*\[!(\w+)\]([+-]?)\s*(.*)$", re.I)
 FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})([^\r\n]*)$")
@@ -170,6 +171,53 @@ def resolve_wiki(vault: Path, source: Path, target: str, names: dict[str, list[P
         if p.is_file() and p.resolve().is_relative_to(vault):
             return p.resolve(), False, "ok"
     return None, False, "missing"
+
+
+def local_md_target(vault: Path, course: Path, source: Path, raw: str) -> tuple[Path | None, str, str]:
+    """Resolve Markdown URL from *source file*, never from Vault cwd.
+
+    Returns (resolved, status, anchor). Resolve symlinks before checking both
+    containment boundaries. A legitimate ../../assets path is allowed.
+    """
+    value = raw.strip()
+    if value.startswith("<") and value.endswith(">"):
+        value = value[1:-1]
+    else:
+        # Optional Markdown title follows whitespace; filenames with spaces
+        # should be URL-encoded or wrapped in angle brackets.
+        value = re.split(r'\s+(?=["\'])', value, maxsplit=1)[0]
+    value = unquote(value)
+    pathpart, _, anchor = value.partition("#")
+    if (not pathpart or pathpart.startswith(("/", "~", "\\")) or
+            re.match(r"^[a-zA-Z]:[\\/]", pathpart) or
+            pathpart.lower().startswith("file:")):
+        return None, "absolute", anchor
+    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", pathpart):
+        return None, "external", anchor
+    if "?" in pathpart:
+        # Query strings are not safe local filesystem references.
+        return None, "invalid", anchor
+    dest = (source.parent / pathpart).resolve()
+    if not dest.is_relative_to(vault):
+        return None, "escape_vault", anchor
+    if not dest.is_relative_to(course):
+        return None, "escape_course", anchor
+    if not dest.is_file():
+        return dest, "missing", anchor
+    return dest, "ok", anchor
+
+
+def image_evidence(lines: list[str], line_no: int, file: Path, emit) -> None:
+    """L1 checks for a local figure's neighboring provenance caption."""
+    nearby = "\n".join(lines[line_no:min(len(lines), line_no + 6)])
+    labels = SOURCE_LABEL.findall(nearby)
+    if not labels:
+        emit("warning", "IMAGE_PROVENANCE", file, line_no,
+             "图片附近缺少 [原图]/[忠实重绘]/[教学示意] 图注")
+    if ("[忠实重绘]" in labels and "assets/original/" not in nearby and
+            "原图无法" not in nearby and "不可提取" not in nearby):
+        emit("warning", "IMAGE_ORIGINAL_EVIDENCE", file, line_no,
+             "忠实重绘未标明原图对照路径或不可提取说明")
 
 
 def course_path_from_ref(course: Path, relative: str) -> Path | None:
@@ -416,8 +464,8 @@ def main() -> int:
         parser.error(f"Vault 不存在或不是目录：{vault}")
     course_arg = Path(args.course).expanduser()
     course = (course_arg if course_arg.is_absolute() else vault / course_arg).resolve()
-    if not course.is_relative_to(vault) or course == vault:
-        parser.error("课程必须严格位于 Vault 子目录之内，禁止越界")
+    if not course.is_relative_to(vault):
+        parser.error("课程必须位于 Vault 内（允许课程目录即 Vault 根目录），禁止越界")
     if not course.is_dir():
         parser.error(f"课程目录不存在：{course}")
     result = lint(vault, course)
