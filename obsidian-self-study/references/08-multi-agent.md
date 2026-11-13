@@ -56,13 +56,13 @@ Commander 派发任务时必须明确：
 
 ## 共享写入与状态协调
 
-**协调者是课程 README.md、QA.md 的唯一写入者**（可由 Commander 亲自担任或明确指派）。Worker 只读取共享索引，不直接改写；其结果写入独立产物与 `handoffs/<task-id>.md`，或经真实工具返回等价的结构化交接信息。只有确有并行任务时才建立 `handoffs/`。
+**协调者是课程 `.build-state.json`、`README.md`、`QA.md` 和 `raw-markdown/source-map.md` 的唯一写入者**（可由 Commander 亲自担任或明确指派）。Worker 只读取共享索引和状态（按授权），不直接改写上述共享文件；其结果写入独立产物与 `handoffs/<task-id>.md`（包含映射新增/修订建议、来源位置与边界证据），或经真实工具返回等价的结构化交接信息。只有确有并行任务时才建立 `handoffs/`。
 
-协调者负责在分配前登记任务范围、状态、写入归属与依赖；接到交付时遵循：
+协调者负责在分配前登记任务范围、状态、写入归属与依赖，独占机器状态持久化；Worker 仅在交接中提交局部状态建议、实际文件路径与 QA 证据，不擅自宣称 `.build-state.json` 已更新。接到交付时遵循：
 
 1. 核对实际交付文件、来源覆盖范围和 Worker 报告，不能只凭“已完成”文字声明。
-2. 对符合要求的笔记执行或复核 L1、必要的 L2；仅在有效文件与 QA 证据具备后更新为 `completed`。待检查可记为 `qa_pending`，失败记录写入 QA 后再标 `failed`。
-3. 统一归并 README 的章节进度、知识关键词、链接和 QA ID；QA.md 记录详细问题、返工与未解决依赖，不丢失 Worker 的定位证据。
+2. 对符合要求的笔记执行或复核 L1、必要 L2；仅在有效文件与 QA 证据具备后更新 `.build-state.json` 为 `completed`。待检查记为 `qa_pending`，失败记录先写 QA 后再置 `failed`；README 在检查点统一同步，不逐次更新微状态。
+3. 统一归并 README 的章节进度、知识关键词、链接和 QA ID，以及 `raw-markdown/source-map.md` 的逻辑小节来源坐标与边界核验；QA.md 记录详细问题、返工与未解决依赖，不丢失 Worker 的定位证据。
 4. 整合跨课件概念、重复定义、章节先后和复习入口；不因 Worker 完成顺序不同而打乱课程逻辑。
 5. 发现依赖冲突、同名文件、重复知识页或不同 Worker 结论冲突时，先隔离/标记并核对源文件，再局部修复；不得静默覆盖已验证成果。
 
@@ -71,6 +71,6 @@ Commander 派发任务时必须明确：
 ## 交付与恢复
 
 - Worker 中断/超时：协调者保留真实已交付文件与状态；检查是否可继续、重分配或记录失败，不擅自推断未返回的任务已完成。
-- Worker 报告失败：按 `references/06-quality.md` 隔离严重问题、传播依赖风险；继续其他独立任务。
-- 章级 L3 和课程级最终交付由协调者负责，按 `references/07-execution.md` 判定 `completed` / `completed_with_issues` / `interrupted`；仅报告实际执行过的检查。
+- Worker 报告失败：按 QA 规范（`references/06-quality.md`）隔离严重问题、传播依赖风险；继续其他独立任务。
+- 章级 L3 和课程级最终交付由协调者负责，按批量执行与恢复规范（`references/07-execution.md`）判定 `completed` / `completed_with_issues` / `interrupted`；仅报告实际执行过的检查。
 - 不强制开发 Agent 调度框架或后台服务；使用宿主当前真实支持的委派工具。不得假装可以后台执行或跨客户端调用 Agent。

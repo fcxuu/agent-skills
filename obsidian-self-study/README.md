@@ -30,17 +30,29 @@
 ## 静态检查
 
 ```bash
-python3 scripts/check_vault.py --vault "/实际/Vault/路径" --course "实际课程文件夹"
-python3 scripts/check_vault.py --vault "/实际/Vault/路径" --course "实际课程文件夹" --json
+# SKILL_DIR 应由客户端提供的 SKILL.md 路径或实际安装目录核验得到
+SKILL_DIR="/实际安装路径/obsidian-self-study"
+VAULT_DIR="/实际/Vault/路径"
+COURSE_DIR="$VAULT_DIR/实际课程文件夹"
+python3 "$SKILL_DIR/scripts/check_vault.py" \
+  --vault "$VAULT_DIR" --course "$COURSE_DIR" --json
+
+# --course 也可传 Vault 内相对路径，如 --course "认知智能"
+python3 -m unittest discover -s "$SKILL_DIR/tests" -v
 ```
 
-检查现存的笔记、图片资源、部分 Obsidian 双链和复习入口；不检查 OCR 数学真伪、教材覆盖的深层语义或实际 Obsidian 渲染。不要把脚本输出理解为课程已通过全部 QA。
+工具为标准库、只读的 L1 静态检查，支持从任意工作目录调用。结果包含稳定排序的 `issues`、`not_checked` 和退出码 `0/1/2`；检查速览结构、图片/双链/复习嵌入、基础状态文件与 Mermaid 语法。**无法证明 OCR/数学真伪、图表真实性或 Obsidian 桌面/移动端渲染正确，也不能替代 L2/L3 QA**。
 
 ## 改进记录
 
 - **A1：已合并至 `main`。** 文档摄取工具无关化，覆盖校验与异常记录。
-- **A2：待审查的工作分支改动。** 主入口保留极简角色路由；默认单 Agent；仅在角色/能力及任务规模满足条件时加载多 Agent 规范，实际委派前评估三项准入门槛并记录判断。
-- 其余改进项仍待讨论，未经明确决策不会直接实施。
+- **A2：累计 PR 中的已实施改动。** 主入口轻量角色路由；满足可信角色或实际委派收益时才加载多 Agent 规范，委派前完成准入评估与决策记录。
+- **B1：累计 PR 中的已实施改动。** 保留独立规范，采用 Baseline/Stage-Specific/Conditional 三层加载门禁；长任务上下文重锚定、原始 Markdown 与前置笔记切片、最小恢复上下文、已完成内容只读保护。
+- **B2：已在本累计 PR 中实施。** Skill 资产使用 `SKILL_DIR`（`SKILL.md` 所在目录）、课程资料使用 `VAULT_DIR` / `COURSE_DIR`，严格区分只读规则与课程输出；首次跨模块引用使用功能名与精确路径双标，不依赖 `pwd`；缺失规范按依赖级别阻断或跳过。
+- **C1：累计 PR 中的已实施改动。** 增量维护 `raw-markdown/source-map.md`；支持跨课件/非连续来源区间、右边界探测、`[符号对照]` 与冲突隔离，并保持 README 学习导航简洁。来源边界 `verified/unverified` 不替代任务五态。
+- **D1：本累计 PR 中的已实施改动。** 课程根目录 `.build-state.json` 维护五态机器状态、SHA-256 来源指纹与断点；README 为检查点同步的学习导航；磁盘+QA 证据优先仲裁，已完成笔记恢复时只读，单写入协调与 C1 源边界状态互不混淆。
+- **E3：已实施。** 只读 Python 标准库检查器升级为轻量词法扫描，支持 E1/D1/E2 的确定性结构验收、JSON 物理证据检查、反误报、路径越界防护、稳定 JSON 与 `not_checked`；临时 Vault 26 项回归测试通过。
+- A3 入口规范已满足，留待版本发布时统一检查；其他改进项仍待讨论，未经确认不实施。
 
 ## A1 文档摄取改进
 
