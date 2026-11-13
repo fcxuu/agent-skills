@@ -234,7 +234,7 @@ B --> C
         generated = self.course / "assets/generated/redraw.svg"
         generated.write_text("<svg/>", encoding="utf-8")
         note = self.course / "notes/t分布.md"
-        self.write_note(note.read_text() + "\n> ![[认知智能/assets/generated/redraw.svg]]\n> **图 [忠实重绘]**：根据教材\n")
+        self.write_note(note.read_text() + "\n> ![忠实重绘示意](../assets/generated/redraw.svg)\n> **图 [忠实重绘]**：根据教材\n")
         run, data = self.run_check()
         self.assertEqual(run.returncode, 0)
         self.assertIn("IMAGE_ORIGINAL_EVIDENCE", self.codes(data))
@@ -348,6 +348,14 @@ B --> C
                         "**图注 [原图]**：页 37。")
         run, data = self.run_portable(course, ".")
         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
+    def test_old_vault_relative_wikilink_fails_even_in_large_vault(self):
+        lectures, _, course, note = self.portable_tree()
+        note.write_text(note.read_text() +
+                        "\n![[图数据管理与挖掘/课件讲解/assets/original/P05/fig.png]]")
+        run, data = self.run_portable(lectures, "图数据管理与挖掘/课件讲解")
+        self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
+        self.assertIn("VAULT_DEPENDENT_WIKILINK", self.codes(data))
 
     def test_relative_image_with_percent_encoded_hash(self):
         _, _, course, note = self.portable_tree()
