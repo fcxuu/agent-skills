@@ -409,14 +409,17 @@ def lint(vault: Path, course: Path) -> dict:
                 if status != "ok":
                     emit("error", "BROKEN_WIKILINK", file, line_no, f"目标不存在：{destination}")
                     continue
-                if resolved and not resolved.is_relative_to(course):
-                    emit("error", "PATH_ESCAPES_COURSE", file, line_no,
-                         f"课程链接不自包含：{destination}")
-                    continue
                 if ambiguous:
                     severity = "error" if file in review and is_embed else "warning"
                     emit(severity, "AMBIGUOUS_WIKILINK", file, line_no,
                          f"同名目标不唯一，禁止自动选择：{destination}")
+                    # For section transclusion, never pick an arbitrary candidate.
+                    if file in review and is_embed:
+                        continue
+                if resolved and not resolved.is_relative_to(course):
+                    emit("error", "PATH_ESCAPES_COURSE", file, line_no,
+                         f"课程链接不自包含：{destination}")
+                    continue
                 if file in review and is_embed and resolved and resolved.suffix.lower() == ".md":
                     # Obsidian's documented section transclusion is ![[name#heading]],
                     # NOT ![alt](note.md#heading) (which is a Markdown image).
