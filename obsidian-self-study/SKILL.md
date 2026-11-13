@@ -21,7 +21,7 @@ metadata:
 
 **先读 [任务预检](references/00-preflight.md) 和 [批量执行](references/07-execution.md)。** 判断 Vault/课程目录、材料清单、先前 README/QA、实际文件、文档摄取能力、权限、额度及依赖。尽量自主确定；只有确实缺少必须输入或涉及高风险覆盖时才询问。
 
-**默认按单 Agent 执行，不加载多 Agent 的详细规则。** 仅当可信用户/上层编排者明确委派为 Worker、指定承担 Commander 职责，或当前环境确有可调用的其他 Agent 且协作明显有益时，才加载 [多 Agent 协作规范](references/08-multi-agent.md)，判断身份、任务范围与交付权限。即使存在委派工具，也不强制多 Agent；不得虚构调用、派发或完成。
+**执行模式分流（默认单 Agent）：** 预检先识别可信指令中的局部 Worker 任务或显式 Commander/多 Agent 要求；二者均按需读取 `references/08-multi-agent.md`。否则，只有**真实可委派工具 + 本次课程明确的并行收益**同时成立才将自己视为 Commander 候选并读取该模块；工具存在本身不触发。未满足条件直接独立构建。Commander 仍须评估后自行决定是否委派，绝不虚构分工结果。
 
 ## 1. 识别资料与文档摄取
 
@@ -44,7 +44,7 @@ metadata:
 - 五种小节状态：`pending` → `processing` → `qa_pending` → `completed`；失败则 `failed`。状态和磁盘文件必须相互核对；不能以文件存在替代 QA 通过。
 - 所有笔记做 L1 基础检查；高风险 OCR/数学/关键新增解释做 L2 复核；每章做 L3 综合检查。可使用 `python3 scripts/check_vault.py --vault <VAULT_PATH> --course <COURSE_REL_PATH>` 检查静态路径、链接和结构；它**不能**证明数学正确或 Obsidian 实际渲染无误。
 - 有依据的修复尽量局部进行；同一问题默认最多两次**有实质变化**的自动修复。严重且无法确认的内容隔离，先记录到 `QA.md`，再更新 README 状态；受影响依赖不得误标通过。
-- 默认由当前构建 Agent 更新课程 README/QA；**实际进入多 Agent 模式时**按 `references/08-multi-agent.md` 指定唯一共享写入者，并由 Worker 交付独立结果供协调者归并。
+- 默认由当前构建 Agent 更新课程 README/QA；实际进入多 Agent 协作时依照 `references/08-multi-agent.md` 确立共享文件唯一写入者。
 
 ## 5. 完成交付
 
