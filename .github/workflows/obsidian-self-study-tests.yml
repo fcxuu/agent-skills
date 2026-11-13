@@ -1,0 +1,24 @@
+name: Obsidian Self-Study L1 tests
+
+on:
+  pull_request:
+    paths:
+      - "obsidian-self-study/**"
+      - ".github/workflows/obsidian-self-study-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run stdlib regression tests
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -B -m unittest discover -s obsidian-self-study/tests -v
