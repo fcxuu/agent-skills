@@ -19,6 +19,69 @@ Vault 为用户**已有**根目录，课程目录为其下既有子目录，不�
 
 不移动或覆盖已有课件；已有同名文件先核验是否本任务产物，不能默认覆写。`raw-markdown/` 的解析产物仅作为当前构建过程的中间层，不是新增源版本追踪系统。
 
+## 机器状态文件与职责边界（D1）
+
+当前课程目录 \`COURSE_DIR\` 下的 \`.build-state.json\` 是**机器任务生命周期的主要状态索引**；学生导航 \`README.md\` 仅是**检查点投影**；\`QA.md\` 保存审计证据；\`raw-markdown/source-map.md\` 保存来源坐标及 \`verified/unverified\` 边界状态。后三者均不能代替机器五态；特别是来源边界 \`verified\` 不代表笔记通过 QA。状态 JSON 不存 OCR、笔记正文、长日志或 Agent 会话。
+
+最小 Schema（\`updated_at\` 为可选 ISO-8601 字符串或 \`null\`；\`sha256\` 必须是计算得到的完整 64 位十六进制摘要，示例占位值不是可信指纹）：
+
+\`\`\`json
+{
+  "schema_version": "0.2.0",
+  "course_status": "in_progress",
+  "sources": {
+    "raw-markdown/lec01.md": {
+      "source_file": "slides/lec01.pdf",
+      "sha256": null,
+      "size_bytes": 48210
+    }
+  },
+  "sections": [
+    {
+      "id": "ch01-sec01",
+      "status": "pending",
+      "source_map_ref": "Ch01 / 1.1 基本概念",
+      "output_path": "notes/01-01-basic-concepts.md",
+      "attempts": 0,
+      "qa_ids": [],
+      "updated_at": null
+    }
+  ]
+}
+\`\`\`
+
+- \`schema_version\` 为字符串；\`course_status\` 只能是 \`in_progress\`、\`completed\`、\`completed_with_issues\`、\`interrupted\`；\`sources\` 为以课程目录相对 \`raw-markdown/*.md\` 路径为键的对象，\`source_file\` 为课程目录相对源课件路径，\`sha256\` 为真实摘要或 \`null\`，\`size_bytes\` 为非负整数字节数。指纹不可获得时明确留空，不伪造。
+- \`sections\` 是小节对象数组；\`id\` 是创建时确定的唯一、稳定 ID（如 \`ch02-sec03\`，不随标题微调改变），\`status\` 严格五值；\`source_map_ref\` 精确引用 C1 当前映射表的逻辑小节键，遇同名/改名先核对归属再更新引用，不凭标题自动创建新 ID；\`output_path\` 是课程相对笔记路径；\`attempts\` 为非负整数，记录本小节累计**实际开始的构建及实质修复**次数；\`qa_ids\` 为 QA 问题 ID 字符串数组，允许空数组；\`updated_at\` 为可选真实时间，无法取系统时间时为 \`null\` 或省略。
+- **尝试上限按 QA 问题而非整节总 attempts 计数**：同一问题最多两次有实质变化的自动修复，从 \`QA.md\` 的该问题修复记录核对。不能因某小节总体 \`attempts > 2\` 就自动认定已经超过某问题的修复上限，也不能重置次数来无限重试。
+
+## 证据要求与合法迁移矩阵
+
+| 状态 | 前置/实际证据 | 允许的自动后继状态 |
+|---|---|---|
+| \`pending\` | 未尝试构建；若输出路径已有未知文件，先核对其来源并禁止覆盖 | \`processing\`（准备就绪时） |
+| \`processing\` | 工作中；可能有不完整草稿，不等于通过 | \`qa_pending\`；\`failed\`（先登记 QA） |
+| \`qa_pending\` | 实际存在非空笔记；L1/必要 L2 尚待验收 | \`completed\`（实际 QA 通过）；\`processing\`（有依据的局部修复且未超同一问题上限）；\`failed\`（先登记 QA） |
+| \`completed\` | 笔记实际存在、非空且路径有效；必要 QA 证据通过，无未解决阻断性 P0 | **无自动迁移，完成态默认只读** |
+| \`failed\` | QA 已记录真实失败原因、位置和依赖影响 | **本轮无自动迁移**；用户明确指令后方可受控恢复 |
+
+正常路径为 \`pending → processing → qa_pending → completed\`；失败从 \`processing/qa_pending → failed\`；局部修复为 \`qa_pending → processing\`。对 C1 来源边界 \`unverified\` 的小节可先保持 \`pending\`，继续其他独立内容，不能把来源边界自动转为任务 \`failed\`。
+
+**恢复发现虚假完成态是纠正损坏的状态元数据，不是授权重新生成笔记的普通状态迁移**：若 JSON 为 \`completed\` 而文件/QA 缺失，必须登记冲突，再将**无有效文件且未能证实完成**的记录保守重建为 \`pending\`（有阻断及 QA 失败证据时为 \`failed\`）；若文件存在但 QA 不明，保守转 \`qa_pending\` 待核验，**不覆写现存笔记**。不要混淆“正常迁移禁止回退”和“错误状态修复”，更不可在恢复时自动删改历史有效产物。
+
+## 状态安全写入（每次机器检查点）
+
+1. 在内存生成完整新对象，核对 JSON 语法、必填字段、路径与状态合法性及迁移证据。
+2. 优先将新内容写到**同一目录**临时文件 \`.build-state.json.tmp\`，不得修改 \`.obsidian/\` 或其他用户目录；若目标或临时文件已有未识别内容先核验，不盲目覆盖。
+3. 当前工具支持时通过 \`os.replace()\` 或同文件系统的安全原子重命名提交，并在提交后确认目标可读、JSON 有效；必要的落盘同步能力以实际平台为准，不能把重命名自动视为已强制持久化。
+4. 仅具备普通文件写入工具时，说明**无法保证原子替换**的限制，优先保留原有效状态的可恢复副本，不擅自覆盖不明数据；写入失败不得报成功。
+5. 进度更新只有在**实际文件落盘和必要 QA 记录写入成功后**才能转为对应的 \`qa_pending/completed/failed\`；Worker 不修改共享状态。
+
+## 源 Markdown 指纹与局部影响
+
+- 能用当前环境原生 \`python3 hashlib\`、\`shasum -a 256\` 或 \`sha256sum\` 时，为 \`sources\` 记录真实 SHA-256 + 字节数；不引入第三方依赖。无哈希能力时仅可保存真实字节数与可核实的页码/标题锚点，并明确无法精确校验变更。\`mtime\` 变化本身**不等于内容变化**。
+- 源 Markdown 的真实内容变化后，核对 C1 中所有引用该文件的行号/标题/页码；只要求受影响**未完成**小节重验来源和必要 QA，**不自动重生成或覆盖**已完成笔记。QA 记录「底层源变化、完成态只读未重跑」及必要依赖风险；不要将全课程自动标为失效。
+
+
 ## 计划与任务状态
 
 每个真实计划小节严格使用以下状态之一：
