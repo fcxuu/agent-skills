@@ -1,6 +1,6 @@
-# Obsidian Self-Study Skill · v0.1
+# Obsidian Self-Study Skill · v0.1 (A1 摄取模块改进分支)
 
-一套面向**课程课件/教材批量构建**的 Agent Skill 草案：把原课件经实际可用的小米 OCR MCP 转为每份课件一份 Markdown，再构建面向 Obsidian 的自学讲义、关键图文、章节复习入口和增量知识索引。包含单 Agent 和 Commander 多 Agent 混合分工约定。
+一套面向**课程课件/教材批量构建**的 Agent Skill 草案：通过当前环境已有的文档解析、OCR 或原生读取能力，将每份课件转换为一份可核验的完整 Markdown，再构建面向 Obsidian 的自学讲义、关键图文、章节复习入口和增量知识索引。包含单 Agent 和 Commander 多 Agent 混合分工约定。
 
 ## 安装
 
@@ -10,13 +10,13 @@
 
 示例（路径只是通用示例，实际运行先检查）：
 
-> 请使用 Obsidian Self-Study Skill 处理 `/path/to/lectures/认知智能/` 中属于这门课的课件。`lectures/` 本身就是现有 Obsidian Vault。先做预检，动态发现小米 OCR MCP；把同一课程课件合并视为课程材料，生成原始 Markdown、2A Callout 教学笔记、README 索引、QA 和复习入口。自主按章节推进、出现失败小节记录并跳过。若你是 Commander，先判断本次是否值得委派可调用的 Agent，合理混合分工；不要虚构调用成功。
+> 请使用 Obsidian Self-Study Skill 处理 `/path/to/lectures/认知智能/` 中属于这门课的课件。`lectures/` 本身就是现有 Obsidian Vault。先做预检，核验并复用已有原始 Markdown，否则动态发现实际可用的解析/OCR/原生读取能力，并抽查覆盖页码与关键公式；把同一课程课件合并视为课程材料，生成原始 Markdown、2A Callout 教学笔记、README 索引、QA 和复习入口。自主按章节推进、出现失败小节记录并跳过。若你是 Commander，先判断本次是否值得委派可调用的 Agent，合理混合分工；不要虚构调用成功。
 
 ## 文件结构
 
 - `SKILL.md` — 主执行规则，按需指向模块。
 - `references/00-preflight.md` — 执行模式、Commander 规划、任务契约。
-- `references/01-ocr.md` — 工具能力发现和源材料保真。
+- `references/01-ingestion.md` — 工具无关的分级文档摄取、文件形态路由、探针与完整性检查。
 - `references/02-pedagogy.md` — 精炼课堂笔记 + 系统自学教材风格。
 - `references/03-obsidian-style.md` — 2A Callout、公式、折叠和复习。
 - `references/04-images.md` — 原图归档与必要重绘。
@@ -35,9 +35,16 @@ python3 scripts/check_vault.py --vault "/实际/Vault/路径" --course "实际�
 
 检查现存的笔记、图片资源、部分 Obsidian 双链和复习入口；不检查 OCR 数学真伪、教材覆盖的深层语义或实际 Obsidian 渲染。不要把脚本输出理解为课程已通过全部 QA。
 
+## A1 文档摄取改进
+
+- 能力顺序：先复用有效 `raw-markdown/`，再动态发现专业 MCP、本地工具、宿主原生文档读取能力；依据文件形态和质量择优，避免整本教材重复试错。
+- 新工具或复杂大文件优先选 1–2 页公式/图表样本验证；摄取完成需检查页覆盖、异常稀疏页及公式/编码；失败按页或文件隔离，不能把非空 Markdown 当作完整成功。
+- README 保留简明的来源→覆盖→笔记导航；解析方式、探针、回退及异常证据记录到 QA.md。
+- `references/01-ocr.md` 暂保留为迁移兼容入口；新规则以 `references/01-ingestion.md` 为准。
+
 ## v0.1 已知边界
 
-- 尚未在用户的真实小米 OCR MCP、Mac 文件系统和 Obsidian 阅读视图中进行端到端测试。
+- 尚未在真实文档摄取工具、Mac 文件系统和 Obsidian 阅读视图中进行端到端测试。
 - 不提供后台任务调度器，不代替实际可调用的多 Agent 平台；Commander 逻辑是角色和工作约定。
 - 不包含家教/互动授课模式；不建立教材更新监听或学习期间笔记同步。
 - Agent Skills 语法参考 <https://agentskills.io/specification>；Obsidian 原生 Callout 与嵌入语法见 <https://obsidian.md/help/callouts>、<https://obsidian.md/help/embeds>。
