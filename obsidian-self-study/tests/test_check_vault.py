@@ -273,5 +273,135 @@ B --> C
         self.assertEqual(before, after)
 
 
+    # V1–V6: one unchanged course tree with three distinct Vault roots.
+    def portable_tree(self):
+        lectures = self.vault / "lectures"
+        outer = lectures / "图数据管理与挖掘"
+        course = outer / "课件讲解"
+        for d in ["notes/ch05", "assets/original/P05", "review"]:
+            (course / d).mkdir(parents=True, exist_ok=True)
+        other = lectures / "其他课程/notes"
+        other.mkdir(parents=True)
+        (other / "other.md").write_text("# 其他课程", encoding="utf-8")
+        (course / "README.md").write_text("[当前章节](notes/ch05/ch05-04.md)", encoding="utf-8")
+        (course / "QA.md").write_text("# QA", encoding="utf-8")
+        (course / "assets/original/P05/fig.png").write_bytes(b"png")
+        (course / "notes/ch05/ch05-03-prev.md").write_text(
+            "# 前置知识\n## 核心速览\n内容\n## 详细", encoding="utf-8")
+        note = course / "notes/ch05/ch05-04.md"
+        note.write_text(
+            "# 规约剥离\n## 核心速览\n已核验概念\n## 正文\n"
+            "> [!tip] 原图\n"
+            "> ![原图|550](../../assets/original/P05/fig.png)\n"
+            "> **图注 [原图]**：源课件 P.36。\n"
+            "[前置知识](ch05-03-prev.md)\n", encoding="utf-8")
+        (course / "review/ch05.md").write_text("![[ch05-04#核心速览]]\n", encoding="utf-8")
+        return lectures, outer, course, note
+
+    def run_portable(self, vault, course_argument):
+        run = subprocess.run(
+            [sys.executable, str(SCRIPT), "--vault", str(vault),
+             "--course", str(course_argument), "--json"],
+            cwd="/", capture_output=True, text=True)
+        return run, json.loads(run.stdout) if run.stdout.strip().startswith("{") else {}
+
+    def test_V1_V2_V3_three_vault_roots(self):
+        lectures, outer, course, _ = self.portable_tree()
+        for vault, relative in [
+            (lectures, "图数据管理与挖掘/课件讲解"),
+            (outer, "课件讲解"),
+            (course, "."),
+        ]:
+            with self.subTest(vault=vault):
+                run, data = self.run_portable(vault, relative)
+                self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+                self.assertEqual(data["errors"], 0)
+                self.assertEqual(data["checked_notes_count"], 2)
+
+    def test_V4_cross_course_escape(self):
+        lectures, _, course, note = self.portable_tree()
+        note.write_text(note.read_text() + "\n[他课](../../../../其他课程/notes/other.md)")
+        run, data = self.run_portable(lectures, "图数据管理与挖掘/课件讲解")
+        self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
+        self.assertIn("PATH_ESCAPES_COURSE", self.codes(data))
+
+    def test_V5_outside_vault_escape(self):
+        _, _, course, note = self.portable_tree()
+        note.write_text(note.read_text() + "\n![出界图片](../../../outside.png)")
+        run, data = self.run_portable(course, ".")
+        self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
+        self.assertIn("PATH_ESCAPES_VAULT", self.codes(data))
+
+    def test_V6_legacy_prefix_fails_with_small_vault(self):
+        _, _, course, note = self.portable_tree()
+        note.write_text(note.read_text() +
+                        "\n![[图数据管理与挖掘/课件讲解/assets/original/P05/fig.png]]")
+        run, data = self.run_portable(course, ".")
+        self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
+        self.assertIn("BROKEN_WIKILINK", self.codes(data))
+
+    def test_relative_image_with_urlencoded_spaces(self):
+        _, _, course, note = self.portable_tree()
+        (course / "assets/original/P05/my fig.png").write_bytes(b"png")
+        note.write_text(note.read_text() +
+                        "\n![原图|350](../../assets/original/P05/my%20fig.png)\n"
+                        "**图注 [原图]**：页 37。")
+        run, data = self.run_portable(course, ".")
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
+    def test_os_absolute_image_forbidden(self):
+        _, _, course, note = self.portable_tree()
+        note.write_text(note.read_text() + "\n![原图](file:///Users/test/fig.png)")
+        run, data = self.run_portable(course, ".")
+        self.assertEqual(run.returncode, 1)
+        self.assertIn("OS_ABSOLUTE_PATH_FORBIDDEN", self.codes(data))
+
+    def test_markdown_md_image_is_not_a_review_transclusion(self):
+        _, _, course, _ = self.portable_tree()
+        (course / "review/ch05.md").write_text(
+            "![核心速览](../notes/ch05/ch05-04.md#核心速览)", encoding="utf-8")
+        run, data = self.run_portable(course, ".")
+        self.assertEqual(run.returncode, 1)
+        self.assertIn("REVIEW_MARKDOWN_NOT_EMBED", self.codes(data))
+
+    def test_ambiguous_review_basename_is_error(self):
+        lectures, _, course, _ = self.portable_tree()
+        (lectures / "其他课程/notes/ch05-04.md").write_text(
+            "# 重名\n## 核心速览\n内容", encoding="utf-8")
+        run, data = self.run_portable(lectures, "图数据管理与挖掘/课件讲解")
+        self.assertEqual(run.returncode, 1)
+        self.assertIn("AMBIGUOUS_WIKILINK", self.codes(data))
+        # The same course by itself still resolves unambiguously.
+        run, data = self.run_portable(course, ".")
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
+    def test_review_relative_link_fallback_is_valid(self):
+        _, _, course, _ = self.portable_tree()
+        (course / "review/ch05.md").write_text(
+            "[查看核心速览](../notes/ch05/ch05-04.md#核心速览)", encoding="utf-8")
+        run, data = self.run_portable(course, ".")
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
+    def test_course_equal_vault_absolute_flag(self):
+        _, _, course, _ = self.portable_tree()
+        run, data = self.run_portable(course, course)
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
+    def test_symlink_target_escaping_course(self):
+        lectures, _, course, note = self.portable_tree()
+        outside = lectures / "private.png"
+        outside.write_bytes(b"png")
+        link = course / "assets/original/P05/shortcut.png"
+        try:
+            link.symlink_to(outside)
+        except OSError:
+            self.skipTest("symlinks unsupported in current filesystem")
+        note.write_text(note.read_text() +
+                        "\n![原图](../../assets/original/P05/shortcut.png)")
+        run, data = self.run_portable(lectures, "图数据管理与挖掘/课件讲解")
+        self.assertEqual(run.returncode, 1)
+        self.assertIn("PATH_ESCAPES_COURSE", self.codes(data))
+
+
 if __name__ == "__main__":
     unittest.main()
