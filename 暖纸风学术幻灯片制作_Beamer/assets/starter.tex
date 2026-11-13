@@ -1,0 +1,158 @@
+% =====================================================================
+%  starter.tex · Warm Paper 版式样张（母版 A–G 各一页）
+%  复制本文件与 beamerthemewarmpaper.sty 到新项目，替换占位内容即可。
+%  编译：xelatex starter.tex（两遍）
+% =====================================================================
+\documentclass[aspectratio=169,10pt,t]{beamer}
+\usetheme{warmpaper}
+\decksections{Background,Method,Results,Conclusion}
+\graphicspath{{placeholders/}}
+
+\title{Paper Title in Title Case}
+\subtitle{中文标题 \muted{——}\ 课程名\dotsep 论文研讨汇报}
+\coverkicker{PAPER SEMINAR}
+\covermeta{汇报小组：第 XX 组\metasep 小组成员：XXX\dotsep XXX\metasep 汇报日期：2026 年 XX 月 XX 日}
+\coverref{Author A\dotsep Author B (2025), \textit{Venue}\par\muted{DOI: 10.xxxx/xxxxx}}
+
+\begin{document}
+
+% ---------- A 封面 ----------
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\section{Background}
+% ---------- F 三卡并列（概念 / 动机 / 结论页） ----------
+\begin{frame}
+  \bititle{Why Is It Hard?}{三个并列原因}
+  \begin{columns}[T,onlytextwidth]
+    \column{.32\textwidth}
+      \begin{warmcard}[\linewidth][2.6cm]{Reason One\\\muted{原因一}}
+        一句话说明第一个原因，正文不超过三行。
+      \end{warmcard}
+    \column{.32\textwidth}
+      \begin{warmcard}[\linewidth][2.6cm]{Reason Two\\\muted{原因二}}
+        并列卡片等高、顶对齐，不加箭头。
+      \end{warmcard}
+    \column{.32\textwidth}
+      \begin{warmcard}[\linewidth][2.6cm]{Reason Three\\\muted{原因三}}
+        关键词用 \key{陶土色} 强调，全页不超过 4 处。
+      \end{warmcard}
+  \end{columns}
+  \vspace{4pt}
+  \begin{takeaway}
+    \key{核心问题}：用一句话把三张卡片收束成一个问题或结论。
+  \end{takeaway}
+\end{frame}
+
+% ---------- B 左图右文 ----------
+\begin{frame}
+  \bititle{Example}{左图右文}
+  \begin{columns}[T,onlytextwidth]
+    \column{.54\textwidth}
+      \safeimg[width=\linewidth,height=.62\textheight]{wide_2to1.png}%
+        {图注：图在说明什么。来源：\file{original_figure.pdf}（论文 Figure 1）。}
+    \column{.42\textwidth}
+      \begin{callout}{对象}
+        $a_5$\ \muted{（补充说明）}
+      \end{callout}
+      \begin{warmcard}{结论}
+        \eqline{(p_1,p_3)\in Ans}
+      \end{warmcard}
+      \begin{warmcard}{推导}
+        \eqline{p_1\xrightarrow{O}a_1\xrightarrow{T}a_3\xleftarrow{O}p_3}
+        {\densesize 公式下的一行解释用小一号字。\par}
+      \end{warmcard}
+  \end{columns}
+  \vfill
+  \begin{fignote}
+    注意：读者容易误解的地方写在这里，例如图中颜色的含义。
+  \end{fignote}
+\end{frame}
+\section{Method}
+% ---------- G 陈述页（章节转场 / 核心论点） ----------
+\begin{frame}
+  \statementpage{一句话讲清方法的核心想法：\key{先做 A}，再做 B。}[这一页只放一句话；下方小字可写出处或限定条件。]
+\end{frame}
+
+% ---------- D 卡片流（步骤 / 流水线） ----------
+\begin{frame}
+  \bititle{Pipeline}{三步流程}
+  \begin{columns}[T,onlytextwidth]
+    \column{.3\textwidth}
+      \begin{warmcard}[\linewidth][2.3cm]{\stepnum{1}\ Step One}
+        输入什么，产出什么。
+      \end{warmcard}
+    \column{.035\textwidth}\gaparrow
+    \column{.3\textwidth}
+      \begin{warmcard}[\linewidth][2.3cm]{\stepnum{2}\ Step Two}
+        \eqline{f(x)=\sum_{i} w_i x_i}
+      \end{warmcard}
+    \column{.035\textwidth}\gaparrow
+    \column{.3\textwidth}
+      \begin{warmcard}[\linewidth][2.3cm]{\stepnum{3}\ Step Three}
+        有先后关系的卡片之间才加箭头。
+      \end{warmcard}
+  \end{columns}
+  \vspace{4pt}
+  \contrastbar{旧方法}{逐个处理，代价高}{新方法}{批量处理，复用中间结果}
+\end{frame}
+
+% ---------- C 上图下卡 ----------
+\begin{frame}
+  \bititle{Wide Figure}{宽图在上，解读在下}
+  \safeimg[height=.3\textheight]{wide_5to1.png}%
+    {图注：宽高比大于 2.5 的图放在顶部通栏。来源：论文 Figure 2。}
+  \begin{columns}[T,onlytextwidth]
+    \column{.485\textwidth}
+      \begin{callout}[\linewidth][1.3cm]{读图要点}
+        先说图里最重要的一个现象。
+      \end{callout}
+    \column{.485\textwidth}
+      \begin{warmcard}[\linewidth][1.3cm]{对应公式}
+        \eqline{\mathrm{cost}(P)=\sum_{o\in P} c(o)}
+      \end{warmcard}
+  \end{columns}
+\end{frame}
+
+\section{Results}
+% ---------- E 数据页（表格 + 图） ----------
+\begin{frame}
+  \bititle{Results}{表格突出关键列}
+  \begin{columns}[T,onlytextwidth]
+    \column{.5\textwidth}
+      {\densesize\warmrule
+      \begin{tabular}{@{}lrrH@{}}
+        \toprule
+        \textbf{Query} & \textbf{Baseline} & \textbf{Ours} & \textbf{Speedup}\\
+        \midrule
+        Q1 & 12.4 s & 1.1 s & 11.3$\times$\\
+        Q2 & 8.0 s & 2.0 s & 4.0$\times$\\
+        Q3 & 30.2 s & 0.9 s & 33.6$\times$\\
+        \bottomrule
+      \end{tabular}\par}
+      \figsrc{表注：单位为秒，数值为占位示例。}
+      \vspace{6pt}
+      \begin{takeaway}
+        最大加速 \speedup{33.6$\times$}，出现在 Q3。
+      \end{takeaway}
+    \column{.46\textwidth}
+      \safeimg[height=.6\textheight]{tall_2to3.png}{来源：论文 Figure 5。}
+  \end{columns}
+\end{frame}
+
+\section{Conclusion}
+\begin{frame}
+  \bititle{Takeaways}{结论}
+  \begin{itemize}\setlength{\itemsep}{6pt}
+    \item 第一条结论：一句话，带一个数字。
+    \item 第二条结论：方法适用的条件。
+    \item 第三条结论：局限，\muted{以及作者没有回答的问题}。
+  \end{itemize}
+  \vfill
+  \begin{fignote}
+    免责或口径说明：例如“最佳计划”指实验中观测到的最快计划，并非理论最优。
+  \end{fignote}
+\end{frame}
+
+\end{document}
