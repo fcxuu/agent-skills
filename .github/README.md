@@ -64,3 +64,5 @@ obsidian-self-study/            → obsidian-self-study/
 欢迎通过 Issues 提交使用反馈，也欢迎通过 Pull Request 改进指令、模板、检查脚本和示例。反馈时请附上使用环境、复现步骤、预期行为与实际结果，并去除凭据和私人材料。
 
 本地工作区的目录与维护约定见 [工作区 README](../README.md)。
+
+从云端更新本地 skill 的标准流程（拉取 → 测试 → 重新打包 ZIP → 提交推送 → 安装到 agent）记录在工作区 README 的《从云端更新本地 Skill》一节，按该流程执行即可让本地、压缩包与仓库保持一致。

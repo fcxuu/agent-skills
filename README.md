@@ -43,6 +43,47 @@ skill存储与编写/
 4. 需要让 agent 使用时，参照该 agent 的约定安装到其正常的 skill 目录；更新工作区不等于更新安装副本。覆盖已有安装版本前先检查差异并保留需要的内容。
 5. 分享压缩包前检查其版本与源文件是否一致，避免把旧快照当作最新版本。
 
+## 从云端更新本地 Skill（标准流程）
+
+- 本地工作路径：`/Users/fuchenxu/Desktop/skill存储与编写`
+- 云端仓库：<https://github.com/fcxuu/agent-skills.git>（远程 `origin`，默认分支 `main`）
+
+以后凡是需要**从云端更新本地 skill**，一律按下面五步执行，做完本地工作区、压缩包与云端仓库三者保持一致。
+
+1. **拉取更新**（先确认工作区干净，不要用拉取覆盖未提交的改动）：
+
+   ```bash
+   cd "/Users/fuchenxu/Desktop/skill存储与编写"
+   git status                     # 有未提交改动先提交或 stash
+   git pull --ff-only origin main
+   git diff --stat HEAD@{1} HEAD  # 查看这次从云端带回了什么
+   ```
+
+2. **跑该 skill 自带的检查/测试**，确认更新后的源码可用（以 Obsidian Self-Study 为例）：
+
+   ```bash
+   cd obsidian-self-study
+   python3 -m unittest discover -s tests
+   ```
+
+3. **按更新后的源码重新打包 ZIP**：包内保持 `<skill 名>/` 顶层目录，排除 `__pycache__/`、`.DS_Store` 等本地文件，覆盖工作区根目录的同名压缩包。压缩包是 Git 跟踪文件，提交后本地与云端即为同一份快照。
+
+   ```bash
+   cd "/Users/fuchenxu/Desktop/skill存储与编写"
+   zip -r -X obsidian-self-study-v0.1.zip obsidian-self-study -x '*/__pycache__/*' '*.DS_Store' '*/.DS_Store'
+   ```
+
+4. **提交并推送**，让远端仓库拿到新的源码与压缩包：
+
+   ```bash
+   git add -A
+   git diff --cached --stat
+   git commit -m "chore(archive): 按最新源码刷新 Obsidian skill 压缩包"
+   git push origin main
+   ```
+
+5. **需要给某个 agent 实际使用时**，把工作区中的 skill 文件夹复制/安装到该 agent 的技能目录（本工作区不是默认安装目录）；覆盖已有版本前先比对差异并备份。
+
 ## Git 维护
 
 本目录使用 Git 记录文件变更，已关联公开仓库 [fcxuu/agent-skills](https://github.com/fcxuu/agent-skills)。本地修改不会自动上传；远程更新也需要主动拉取。常用命令（在本目录运行）：
