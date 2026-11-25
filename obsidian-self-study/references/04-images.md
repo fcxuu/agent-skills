@@ -1,42 +1,42 @@
-# 04 · 确定性教学绘图、图像真实性与可追溯性
+# 04 · Deterministic Figures, Visual Truthfulness & Provenance
 
-## 图像语义 → 工具选择（先核对实际能力）
+## Semantics → Tool Selection (Probe Real Capabilities First)
 
-| 图像语义 | 优先使用的现有工具 | 不可突破的约束 |
+| Figure Semantics | Preferred Available Tool | Hard Constraint |
 |---|---|---|
-| 教材清晰原图 | 源文件提取并引用 | 不擅改数据、刻度、图中结论 |
-| 数学函数、概率密度/CDF、统计与参数曲线 | Python + Matplotlib、可靠公式/数据生成 SVG/PNG | 明确解析公式、参数、定义域；不能手绘估算或伪造实验曲线 |
-| 算法控制流、逻辑依赖与操作步骤 | Obsidian 原生 Mermaid；复杂时可用 Graphviz | 保持步骤、分支及箭头方向 |
-| 图论、树、FSM、网络拓扑 | 可用的 NetworkX + Matplotlib、Graphviz 或确定性 SVG | 节点/边数、方向、边权、状态标签必须准确 |
-| 几何、向量、正交投影和空间示意 | 确定性 SVG / Python 绘图 | 核对关键几何关系，示意比例不冒充精确测量 |
-| 无精确数据/拓扑的教学概念插画 | 已有绘图能力，必要时受控使用生成式插画 | 必须标 `[教学示意]`，不可冒充原教材图或实验数据 |
+| Clear textbook/slide original | Extract from source & embed | Never alter data, scales, or conclusions |
+| Math functions, PDF/CDF, statistical curves | Python + Matplotlib / deterministic SVG or PNG from verified formulas/data | Explicit formula, parameters, domain; never eyeball or fabricate data curves |
+| Algorithm control flow, logical steps | Native Obsidian Mermaid (or Graphviz if complex) | Preserve exact steps, branches, and arrow directions |
+| Graphs, trees, FSMs, topologies | NetworkX + Matplotlib, Graphviz, or deterministic SVG | Exact node/edge counts, directions, weights, labels |
+| Geometry, vectors, projections | Deterministic SVG / Python plotting | Verify geometric relations; never claim schematic ratios as exact measurements |
+| Conceptual illustration (no exact data/topology) | Available drawing tool / controlled illustration | Must label `[教学示意]`; never pass off as source or experimental figure |
 
-**涉及数值、数学结构或严格拓扑，优先可验证的确定性图形方法**；图像生成模型只用于不承载精确数学和数据关系的概念插画。当前环境无能力时不得虚构工具或自动安装依赖。
+**Always prefer deterministic, verifiable graphics for numerical, mathematical, or topological content.** Never invent tools or auto-install packages (`brew`/`apt`/`pip`) without permission.
 
-## 四级原图优先决策
+## Four-Tier Original-First Decision Rule
 
-1. **清晰可信原图**：提取至 `assets/original/` 后直接引用，不为统一审美而重绘。
-2. **原图模糊、依据充分**：从确切公式、数据、参数、节点/边关系忠实重绘至 `assets/generated/`；**只要原图或模糊截图可可靠提取，必须同时归档到 `assets/original/`**，供 L2 对照。图注标出原图路径及源页。原图不可提取时明确记录缺失，不能声称有视觉对照。
-3. **确有教学必要而没有原图**：制作有明确依据的 `[教学示意]`，声明非原教材原图、非真实实验数据；自选演示参数须写明是教学示例。
-4. **重要依据缺失**：不猜测数值、方向、边权或原本的实验趋势；保留可用残图，登记 QA 和受影响小节，继续独立内容。
+1. **Clear, trustworthy original:** Extract to `assets/original/` and embed directly—never redraw merely for uniform aesthetics.
+2. **Blurry original with verifiable basis:** Redraw faithfully to `assets/generated/` from exact formulas, data, or topology. **Whenever the original or blurry crop can be extracted, archive it in `assets/original/`** for L2 comparison and cite its path in the caption. If unextractable, state so explicitly—never claim visual side-by-side verification.
+3. **Pedagogically needed, no original exists:** Produce a clearly grounded `[教学示意]`, explicitly stating it is not from the source and not real experimental data (note any chosen demo parameters).
+4. **Critical basis missing:** Never guess numbers, arrow directions, weights, or trends. Keep usable partial crops, log the gap in `QA.md`, and continue independent sections.
 
-## 三类来源标签（直接写在图注，不另建装饰卡片）
+## Three Image Provenance Labels (Inline in Caption Only)
 
-- **`[原图]`**：从原课件直接提取，图注记录源文件及实际可信页码/幻灯片号。
-- **`[忠实重绘]`**：重绘依据（公式/原始数据/结构定义）、关键参数、源文件及位置、`assets/original/` 的**可提取原图对照路径**必须可查；图像保存在 `assets/generated/`，不修改原图文件。若确实无可提取原图，明确写「原图无法可靠提取，未做视觉对照」，转由可验证公式/数据核验并登记相关限制。
-- **`[教学示意]`**：生成于 `assets/generated/` 或原生 Mermaid，清楚标注「非真实实验数据、非原教材图像」和示例参数（若有）。
+- **`[原图]`**: Extracted directly from course material; cite source file and page/slide.
+- **`[忠实重绘]`**: Saved in `assets/generated/`; cite formula/data/topology basis, source location, and archived `assets/original/` comparison path (or explicitly state if unextractable).
+- **`[教学示意]`**: Generated in `assets/generated/` or native Mermaid; explicitly state "non-experimental / illustrative" and demo parameters.
 
-同一图注与 C2 的 `[直觉桥接]`、`[推导补全]` 不重复堆标签：图片下方只标**一种图像来源类别**；教学解释按必要性另用正文简述，避免嵌套多层 Callout。
+Use **exactly one** image provenance label per figure caption—do not wrap figures in extra redundant provenance cards.
 
-## 本地归档与就近排版
+## Archiving & Portable Relative Links
 
-- 两类资产固定在现有课程目录的 `assets/original/` 与 `assets/generated/`；按需创建，**不移动/重命名用户既有素材**，不引入外部图床或资产数据库。
-- 文件名可带课件、页码/图序或语义标识，例如 `source04_p018_fig02.png`、`t-vs-normal.svg`；**图片必须使用相对于当前 Markdown 文件所在目录的标准 Markdown 相对路径**，不写生成时 Vault 前缀，也不写 `/Users/...` 绝对路径。从 `notes/ch05/example.md` 指向 `assets/original/P05/fig.png` 应计算为 `../../assets/original/P05/fig.png`，嵌入语法是 `![图像说明|550](../../assets/original/P05/fig.png)`，保留 Obsidian 图片宽度扩展。相同文件名不会引发歧义。
-- 重要图紧邻定义、公式或算法步骤，**置于对应默认展开的 Callout 内**，紧挨图注和「看什么/为什么重要」说明；非关键附图允许折叠。无关装饰图不生成。
+- Store files strictly under `COURSE_DIR/assets/original/` and `COURSE_DIR/assets/generated/`; never move/rename existing user assets or introduce external image hosts.
+- Compute image paths relative to the **containing note's parent directory** via `os.path.relpath(target, start=note.parent)` with POSIX `/`, verified inside `COURSE_DIR` (e.g., `![caption|550](../../assets/original/P05/fig.png)` from `notes/ch05/note.md`—recompute for different depths, never hardcode `../../`). Properly URL-encode spaces/parentheses/`#`. Remove any embed whose image file does not exist.
+- Place essential figures expanded inside their governing callout right next to the equation/definition they explain.
 
 ````markdown
 > [!tip] 主成分方向与投影
-> 数学条件：$ \max_{\|w\|=1} w^\top S w $。
+> 数学条件：$\max_{\|w\|=1} w^\top S w$。
 >
 > ![PC1 投影示意|550](../../assets/generated/pca.svg)
 >
@@ -44,12 +44,10 @@
 > **观察**：沿 PC1 的投影方差较大。
 ````
 
-以上示例假定笔记位于 `notes/chXX/`；若笔记在 `notes/` 或更深层目录，必须重新计算真实相对路径，不可照搬 `../../`。路径按 `os.path.relpath(目标文件绝对路径, start=当前笔记.parent)` 计算，再转 POSIX `/`；目标必须位于 `COURSE_DIR`。含空格、括号、`#` 等字符需按 Markdown/URL 正确编码，不擅自重命名现有素材。未生成真实图文件时删除嵌入，不留下死链。
+## Deterministic Plotting & Light/Dark Theme Readability
 
-## 确定性绘图与深浅色主题可读性
-
-- **Matplotlib / 数值 SVG、PNG**：绘制前核验公式与 LaTeX、参数、单位、定义域及数据来源；默认不透明白底（例如 `facecolor='white'`；或高对比浅暖灰底），图题建议 ≥12 pt、轴标签/图例建议 ≥10 pt，字体与刻度确保缩放到移动端仍可读；保存时可用 `bbox_inches='tight'` 避免裁切标签。检查 PNG/SVG 背景、图例、轴范围、参数变化趋势与深浅主题对比度；深色主题下不能靠透明底配默认黑轴文字。
-- **Mermaid**：算法流程/结构关系优先原生 `mermaid` 代码块，不能替代有真实数值坐标的分布、统计和精确几何。放进 Callout 时，**代码围栏起止行、每条定义/边行、空行都必须带 `> ` 前缀**，防止 Markdown 引用被中断；需在 Obsidian 核验渲染后才声称实际兼容。
+- **Matplotlib / PNG / SVG:** Verify formulas, units, domain, and data before plotting. Use an opaque light background (`facecolor='white'` or warm light gray), title ≥ 12 pt, axis/legend ≥ 10 pt, and `bbox_inches='tight'` so dark-mode Obsidian users never see black text on a transparent background.
+- **Mermaid inside Callouts:** Prefix **every line** (opening fence, edges, blank lines, closing fence) with `> `:
 
 ````markdown
 > [!tip] 算法流程图 [教学示意]
@@ -65,16 +63,10 @@
 > **图注 [教学示意]**：流程示意，不代表实际运行测量。
 ````
 
-- **Graphviz / NetworkX / SVG**：使用前探测确实可用的本地工具，不自动执行 `brew install`、`apt` 或 `pip install`；复杂有向图/树可选 Graphviz，精确坐标图不可用 Mermaid 代替。SVG 应是可在本地使用的**静态自包含**图形，禁用 `<script>`、外部字体/图片加载及交互事件。谨慎选择标签字号、对比度、移动端可读尺寸。
+- **Standalone SVGs:** Must be static and self-contained—no `<script>`, external fonts/images, or interactive handlers.
 
-## 数学真实性与分级 QA
+## Truthfulness QA & Safe Fallback
 
-- **数值图**：实现的函数、参数、定义域、横纵轴、单位和图例必须与笔记一致；原始实测和合成教学数据必须区分，不能虚构数据点、误差条、置信区间或显著性。
-- **结构图**：核对节点/边数量、有向/无向、权重、转移概率、标签和算法顺序；严禁为美观更改关系。
-- **几何图**：方向、夹角、正交投影及落点依据数学定义；二维概念示意不称为真实 PCA/t-SNE 等高维结果。
-- **L1**：检查图片文件可读且真实存在、Vault 相对嵌入路径准确、图注类别明确、Callout/Mermaid 引用与代码块围栏未断裂。静态检查**只能检查结构**。
-- **L2**：关键新增数学/统计曲线、`[忠实重绘]`、关键图论/几何示意均须对照可靠公式/数据/拓扑；重绘的可提取原图必须与 `assets/original/` 对照，检查数学关系、图例、单位与必要来源证据。不得将工具返回成功或静态路径通过冒充数学正确、实际 Obsidian 渲染通过。
-
-## 工具受限时的安全降级
-
-优先用真实原图 → 已探测可用的确定性替代（流程关系可用 Mermaid；必要时以清晰的 ASCII 结构描述辅助）→ 仍无法可靠表示数学图形时**不强行补画** → 在课程 `QA.md` 记录缺图位置、原因、风险和修复建议 → 继续其他独立部分。**不得擅自改变软件环境、虚报已绘图或已验证渲染。**
+- **L1 (deterministic structure):** File exists and is readable, relative path stays inside `COURSE_DIR` and `VAULT_DIR`, caption has a valid provenance label, callout/Mermaid fences are intact.
+- **L2 (substantive verification):** Cross-check key math/stat curves, all `[忠实重绘]`, and topology/geometry plots against archived originals, verified formulas, or data—never equate exit code 0 or L1 pass with mathematical accuracy or live Obsidian rendering.
+- **When plotting tools are unavailable:** Fall back in order: clear original → available deterministic alternative (Mermaid or concise ASCII structure) → omit figure rather than faking it, log gap and fix hint in `QA.md`, and continue independent sections.

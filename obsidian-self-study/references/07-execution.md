@@ -1,30 +1,30 @@
-# 07 · 批量执行、断点恢复与交付
+# 07 · Batch Execution, State Persistence, Recovery & Delivery
 
-## 目录规则
+> **Quick Index:** 1. Course Directory Layout · 2. `.build-state.json` Schema & `state_tool.py` · 3. Five-State Matrix · 4. Protected Completed & Controlled Revision · 5. Safe Atomic Writes & Fingerprints · 6. Section Loop & Minimal Recovery Context · 7. Re-anchoring & Final Delivery
 
-Vault 为用户**已有**根目录，课程目录为其下既有子目录，不引入任何新外层根目录。示例：`/path/to/lectures/认知智能/`。原始资料、`README.md` 和 `QA.md` 位于同级。按需创建：
+## 1. Course Directory Layout
+
+Operate strictly inside the user's existing `VAULT_DIR` and `COURSE_DIR` (never create outer wrapper folders or move/overwrite source slides):
 
 ```text
-<已有课程目录>/
-  原始课件1.pdf / 原始课件2.pptx / ...
-  .build-state.json          # 机器五态、恢复指针和来源指纹
-  README.md                  # 学生导航 + 检查点进度摘要
-  QA.md                      # 详细问题和修复历史
-  raw-markdown/              # 每份课件一份完整 Markdown + source-map.md 逻辑小节定位表
-  notes/                     # 按小节的自学笔记；深度专题按需拆页
-  review/                    # 复习入口：嵌入 notes 的核心速览
-  assets/original/           # 能可靠提取的原图
-  assets/generated/          # 可靠重绘或必要补图
-  handoffs/                  # 可选：仅实际多 Agent 交接时创建
+<COURSE_DIR>/
+  source1.pdf / source2.pptx / ...   # untouched originals
+  .build-state.json                  # machine 5-state, pointers, source SHA-256 fingerprints
+  README.md                          # student navigation + checkpoint progress projection
+  QA.md                              # audit ledger, ingestion notes, rework history
+  raw-markdown/                      # one full Markdown per source + source-map.md
+  notes/                             # logical section notes (and optional split topic pages)
+  review/                            # exam review hubs embedding ## 核心速览
+  assets/original/                   # extracted source figures
+  assets/generated/                  # deterministic redraws / schematic plots
+  handoffs/                          # optional: created only during real multi-agent delegation
 ```
 
-不移动或覆盖已有课件；已有同名文件先核验是否本任务产物，不能默认覆写。`raw-markdown/` 的解析产物仅作为当前构建过程的中间层，不是新增源版本追踪系统。
+## 2. `.build-state.json` Schema & `state_tool.py`
 
-## 机器状态文件与职责边界（D1）
+`.build-state.json` is the **primary machine lifecycle ledger**; `README.md` is a checkpoint projection; `QA.md` is the evidence ledger; `raw-markdown/source-map.md` holds source coordinates and `verified`/`unverified` boundary status only. Never store OCR text, note prose, or long logs in `.build-state.json`.
 
-当前课程目录 `COURSE_DIR` 下的 `.build-state.json` 是**机器任务生命周期的主要状态索引**；学生导航 `README.md` 仅是**检查点投影**；`QA.md` 保存审计证据；`raw-markdown/source-map.md` 保存来源坐标及 `verified/unverified` 边界状态。后三者均不能代替机器五态；特别是来源边界 `verified` 不代表笔记通过 QA。状态 JSON 不存 OCR、笔记正文、长日志或 Agent 会话。
-
-最小 Schema（`updated_at` 为可选 ISO-8601 字符串或 `null`；`sha256` 必须是计算得到的完整 64 位十六进制摘要，示例占位值不是可信指纹）：
+Minimal schema (strictly validated by `scripts/check_vault.py`):
 
 ```json
 {
@@ -51,133 +51,73 @@ Vault 为用户**已有**根目录，课程目录为其下既有子目录，不�
 }
 ```
 
-- `schema_version` 为字符串；`course_status` 只能是 `in_progress`、`completed`、`completed_with_issues`、`interrupted`；`sources` 为以课程目录相对 `raw-markdown/*.md` 路径为键的对象，`source_file` 为课程目录相对源课件路径，`sha256` 为真实摘要或 `null`，`size_bytes` 为非负整数字节数。指纹不可获得时明确留空，不伪造。
-- `sections` 是小节对象数组；`id` 是创建时确定的唯一、稳定 ID（如 `ch02-sec03`，不随标题微调改变），`status` 严格五值；`source_map_ref` 精确引用 C1 当前映射表的逻辑小节键，遇同名/改名先核对归属再更新引用，不凭标题自动创建新 ID；`output_path` 是课程相对笔记路径；`attempts` 为非负整数，记录本小节累计**实际开始的构建及实质修复**次数；`qa_ids` 为 QA 问题 ID 字符串数组，允许空数组；`updated_at` 为可选真实时间，无法取系统时间时为 `null` 或省略。
-- **尝试上限按 QA 问题而非整节总 attempts 计数**：同一问题最多两次有实质变化的自动修复，从 `QA.md` 的该问题修复记录核对。不能因某小节总体 `attempts > 2` 就自动认定已经超过某问题的修复上限，也不能重置次数来无限重试。
+- `course_status`: `in_progress` | `completed` | `completed_with_issues` | `interrupted`.
+- `sources`: keyed by course-relative `raw-markdown/*.md`; `source_file` is course-relative; `sha256` is a real 64-hex digest or `null` (never fake placeholders); `size_bytes` is a non-negative integer.
+- `sections`: unique stable `id` (does not change on minor title edits), `status` in 5 states, `source_map_ref` matching a row in `source-map.md`, `output_path` (course-relative `.md`), `attempts` (non-negative int counting started builds/substantive fixes), `qa_ids` (`list[str]`), optional ISO-8601 `updated_at` or `null`.
+- **Retry cap is tracked per QA issue (max 2 substantive fixes in `QA.md`), not by total section `attempts`.**
 
-## 证据要求与合法迁移矩阵
+**Prefer `scripts/state_tool.py` over hand-editing JSON** (atomic `os.replace`, auto SHA-256, transition guards):
 
-| 状态 | 前置/实际证据 | 允许的自动后继状态 |
+```bash
+python3 "$SKILL_DIR/scripts/state_tool.py" init --course "$COURSE_DIR"
+python3 "$SKILL_DIR/scripts/state_tool.py" register-source --course "$COURSE_DIR" --raw raw-markdown/lec01.md --source slides/lec01.pdf
+python3 "$SKILL_DIR/scripts/state_tool.py" upsert-section --course "$COURSE_DIR" --id ch01-sec01 --source-map-ref "Ch01 / 1.1 基本概念" --output notes/01-01.md --status processing --bump-attempts
+python3 "$SKILL_DIR/scripts/state_tool.py" set-course-status --course "$COURSE_DIR" --status completed_with_issues
+python3 "$SKILL_DIR/scripts/state_tool.py" summary --course "$COURSE_DIR" --json
+```
+
+## 3. Five-State Evidence & Transition Matrix
+
+| State | Required Evidence | Allowed Automatic Transitions |
 |---|---|---|
-| `pending` | 未尝试构建；若输出路径已有未知文件，先核对其来源并禁止覆盖 | `processing`（准备就绪时） |
-| `processing` | 工作中；可能有不完整草稿，不等于通过 | `qa_pending`；`failed`（先登记 QA） |
-| `qa_pending` | 实际存在非空笔记；L1/必要 L2 尚待验收 | `completed`（实际 QA 通过）；`processing`（有依据的局部修复且未超同一问题上限）；`failed`（先登记 QA） |
-| `completed` | 笔记真实存在且必要 QA 通过，无未决 P0 | **默认无自动迁移、正文只读**；仅在之后发现有可核实的新 P0 时，先写 QA/受影响依赖并将状态纠错为 `failed`，关联 `qa_ids`，**不退回 `pending` / `processing`，也不获得正文写权限** |
-| `failed` | QA 已记录真实失败原因、位置和依赖影响 | **本轮无自动迁移**；用户明确指令后方可受控恢复 |
+| `pending` | Not yet started; verify any unknown file at `output_path` before touching | `processing` |
+| `processing` | Build/rework in progress; incomplete drafts ≠ pass | `qa_pending`; `failed` (log `QA.md` first) |
+| `qa_pending` | Non-empty note on disk; awaiting L1/L2 QA | `completed` (QA passed); `processing` (grounded local fix within issue cap); `failed` (log `QA.md` first) |
+| `completed` | Non-empty note + passed L1/L2 QA + no open core P0 | **Read-only snapshot by default.** Only a verified new core P0 triggers `completed → failed` (log `QA.md` & dependents first; **no body write permission**; never auto-revert to `pending`/`processing`) |
+| `failed` | Real failure reason, coordinates, and downstream risk logged in `QA.md` | **No auto-retry this run**; requires explicit user instruction to resume |
 
-正常路径为 `pending → processing → qa_pending → completed`；失败从 `processing/qa_pending → failed`；局部修复为 `qa_pending → processing`。**已验收完成后新发现且核实的 P0 属于独立的质量撤销事件：`completed → failed`，必须有 QA 证据及依赖登记，禁止自动转回待构建态。**对 C1 来源边界 `unverified` 的小节可先保持 `pending`，继续其他独立内容，不能把来源边界自动转为任务 `failed`。
+- An `unverified` boundary in `source-map.md` keeps the section `pending` (logged in `QA.md`) rather than marking task `failed`.
+- **Ghost `completed` metadata repair** (JSON says `completed` but file/QA is missing) is metadata correction, not permission to overwrite files: log the conflict, set `pending` if no file exists, `qa_pending` if a file exists with unclear QA, or `failed` if blocking failure evidence exists—never overwrite existing notes during repair.
 
-**恢复发现虚假完成态是纠正损坏的状态元数据，不是授权重新生成笔记的普通状态迁移**：若 JSON 为 `completed` 而文件/QA 缺失，必须登记冲突，再将**无有效文件且未能证实完成**的记录保守重建为 `pending`（有阻断及 QA 失败证据时为 `failed`）；若文件存在但 QA 不明，保守转 `qa_pending` 待核验，**不覆写现存笔记**。不要混淆“正常迁移禁止回退”和“错误状态修复”，更不可在恢复时自动删改历史有效产物。
+## 4. Protected Completed State & Controlled Revision
 
-## 受保护完成态与受控修订（D2）
+Once a section meets all 4 conditions (`status == completed`, non-empty file, passed L1/L2, no open core P0), its body is **immutable** during auto-recovery, later chapters, backlinking, review embeds, or L3 checks.
 
-**受保护完成态（Protected Completed State）**须同时有：① `.build-state.json` 为 `completed`；② `output_path` 实际存在、非空；③ L1 与该小节必要的 L2 已通过并可核验；④ `QA.md` 无影响核心真值的未决 P0。进入该状态后，教学笔记正文为**不可自动修改的快照**，读取可用于核验，但不得因后续新章节、补反向双链、README/source-map 更新、复习嵌入、上下文压缩/恢复或常规 L3 而改写原笔记。需要链接时应更新新笔记、README 或复习入口，而不是回写完成态笔记。
+**Only controlled revision entry:** When a trusted user **explicitly names the specific completed note and revision scope**:
+1. Lock the authorized file path, revision scope, and QA ID—do not widen to unnamed chapters.
+2. Back up the original to `<filename>.md.bak` (not `-backup.md`, so Obsidian does not index it as a second Markdown note) and verify backup integrity before editing. Abort if backup fails.
+3. Log user authorization and backup path in `QA.md`, then unlock state via `state_tool.py upsert-section ... --status processing --controlled-revision --bump-attempts`.
+4. Edit strictly within scope, preserving verified prose and user annotations.
+5. Move to `qa_pending`, re-run L1 + necessary L2; restore `completed` only after passing. Retain `.md.bak` unless user approves deletion. Log downstream review needs in `QA.md` without cascading regenerations.
 
-**后来发现质量问题时只改元数据与导航：**
-- P2：在 QA 登记，`completed` 保持，不改正文或无意义重跑。
-- P1：QA 登记具体局部风险并将 ID 关联到 JSON 的 `qa_ids`；主结论仍可靠时保留 `completed`，在 README/复习入口提示必要风险；不改正文。
-- **已核实 P0**：先登记来源证据、`qa_ids` 和**已引用该笔记的后续章节/知识依赖**，再把状态由 `completed` 更正为 **`failed`**（非 `pending`、`processing`），不准自动修复原文件。README/复习入口须排除受影响的无警告结论或加明确警示，后续 Agent 不得把该结论当成可靠前置知识。下游完成态笔记同样不得批量重写；仅登记复核风险并在相关导航处提醒。**状态降级≠正文写入授权**。
-- **区分 D1 幽灵完成态**：JSON 错报完成、却从未存在有效笔记/QA 的情况按 D1 证据规则重建元数据；这里的 `completed → failed` 专用于**曾经确实通过验收、后来发现新的核心 P0**，不可混为一谈。
+## 5. Safe Atomic Writes & Source Fingerprints
 
-**唯一受控修订入口（Controlled Revision）**：仅可信用户在当前任务中**明确点名指定的已完成笔记与修订范围**，方可按以下顺序解锁：
+- Validate schema and transitions in memory, write `.build-state.json.tmp` in `COURSE_DIR`, commit via `os.replace()`, and verify readability (`state_tool.py` handles this automatically). Update to `qa_pending`/`completed`/`failed` only **after** the note/QA files are safely on disk.
+- Record real SHA-256 + `size_bytes` via stdlib `hashlib` (`mtime` change alone ≠ content change). If a raw Markdown file's real content changes later, re-verify affected `source-map.md` ranges and re-check **incomplete** dependent sections only; keep `completed` notes read-only and log "underlying source changed; completed note preserved" in `QA.md`.
 
-1. 锁定本次被授权的笔记路径、需要修复的具体范围及关联 QA ID；不扩散至未点名章节。
-2. 修改前把原笔记完整备份成`<原文件名>.md.bak`（例 `notes/02-01-random-walk.md.bak`），或使用课程目录下专用**隐藏备份目录**；核对备份存在、内容完整且与原文件一致，失败则**不进入修改步骤**。不得创建以 `-backup.md` 结尾的第二份正式笔记，不把备份加入双链或复习入口。谨慎避免覆盖已有备份。
-3. 先记录用户授权与备份路径到 `QA.md`，在 `.build-state.json` 安全写入**受控解锁**为 `processing`，`attempts` 递增；本操作是有明确用户授权的特例，不能作为自动返工入口。
-4. 只在授权范围内局部修订，保留其他已验证正文和用户已有批注；不要改写其他已完成笔记。
-5. 修改文件落盘后转 `qa_pending`，复核本次变更并对整篇执行 L1、必要 L2；如失败按已有 QA/状态规则处理，不假称已完成。
-6. 通过后更新问题记录及 JSON 的 `qa_ids`、`completed`，恢复只读；保留 `.md.bak` 备份供用户对照，未经许可不自动删除。后续章节仅在 QA 登记依赖复核需要，不能级联重生成。
+## 6. Section Loop & Minimal Recovery Context
 
-`.md.bak` 是保留原文且**不以 `.md` 结尾**的备份命名约定，能减少被视为第二份 Markdown 笔记的风险；具体 Obsidian 客户端/插件是否展示其他扩展名文件需实际验证，不能宣称备份必然完全隐藏。
+### Single-Section Loop
+1. Pick the next ready `pending`/resumable section from `.build-state.json`; verify `source-map.md` boundary is `verified`, then set `processing`.
+2. Slice-read only the exact segments in `source-map.md` plus `## 核心速览` (and needed definitions) of prerequisites.
+3. Write note + figures to disk; once non-empty on disk, set `qa_pending`.
+4. Run L1 (`check_vault.py`) + required L2 (≤ 2 substantive fixes per QA issue). Set `completed` on pass, or write `QA.md` first then set `failed`. Sync `README.md` at checkpoints (every 2–3 completed sections, chapter end, major failure, or delivery).
+5. On chapter end, run L3 and build/update `review/` hub, then proceed autonomously to the next chapter.
 
-## 状态安全写入（每次机器检查点）
+### Minimal Recovery Context (6-Step Evidence-First Resume)
+On resume, load **only** what is needed for the active section (never reload the whole course):
+1. Inspect `.build-state.json` (and verify any leftover `.build-state.json.tmp` before touching it).
+2. Validate schema and 5-state integrity; repair corrupt metadata conservatively from disk + `QA.md` + `README.md`.
+3. Identify actionable unfinished sections without re-running already-`failed` items.
+4. Cross-check disk notes/drafts and `QA.md` evidence.
+5. Consult `README.md` for navigation and `source-map.md` for source coordinates.
+6. Arbitrate strictly by **disk artifacts & QA evidence > `.build-state.json` > `README.md`** (`processing` → resume from draft; `qa_pending` → run QA without regenerating; `completed` → skip read-only or repair ghost metadata; `failed` → skip this run).
 
-1. 在内存生成完整新对象，核对 JSON 语法、必填字段、路径与状态合法性及迁移证据。
-2. 优先将新内容写到**同一目录**临时文件 `.build-state.json.tmp`，不得修改 `.obsidian/` 或其他用户目录；若目标或临时文件已有未识别内容先核验，不盲目覆盖。
-3. 当前工具支持时通过 `os.replace()` 或同文件系统的安全原子重命名提交，并在提交后确认目标可读、JSON 有效；必要的落盘同步能力以实际平台为准，不能把重命名自动视为已强制持久化。
-4. 仅具备普通文件写入工具时，说明**无法保证原子替换**的限制，优先保留原有效状态的可恢复副本，不擅自覆盖不明数据；写入失败不得报成功。
-5. 进度更新只有在**实际文件落盘和必要 QA 记录写入成功后**才能转为对应的 `qa_pending/completed/failed`；Worker 不修改共享状态。
+## 7. Context Re-Anchoring & Final Delivery
 
-## 源 Markdown 指纹与局部影响
-
-- 能用当前环境原生 `python3 hashlib`、`shasum -a 256` 或 `sha256sum` 时，为 `sources` 记录真实 SHA-256 + 字节数；不引入第三方依赖。无哈希能力时仅可保存真实字节数与可核实的页码/标题锚点，并明确无法精确校验变更。`mtime` 变化本身**不等于内容变化**。
-- 源 Markdown 的真实内容变化后，核对 C1 中所有引用该文件的行号/标题/页码；只要求受影响**未完成**小节重验来源和必要 QA，**不自动重生成或覆盖**已完成笔记。QA 记录「底层源变化、完成态只读未重跑」及必要依赖风险；不要将全课程自动标为失效。
-
-
-## 计划与任务状态
-
-每个真实计划小节在 `.build-state.json` 中严格使用以下状态之一；合法迁移和证据条件以上方 D1 矩阵为准：
-
-- `pending`：还未尝试。
-- `processing`：正在生成或恢复中。
-- `qa_pending`：已保存内容，尚未完成必要 QA。
-- `completed`：已保存且通过需要执行的 QA；有实际文件证据。
-- `failed`：本轮无法完成，QA 中有原因和后续建议；默认跳过后继续独立内容。
-
-上层课程状态：`in_progress`、`completed`、`completed_with_issues`、`interrupted`。章节状态可概括“已通过/有失败/进行中”，但不能替代小节状态。
-
-## 增量映射检查点
-
-- **启动或恢复时**：检查课程内 `raw-markdown/source-map.md`（若已有），核对正在处理的逻辑小节、源课件实际存在、引用的原始 Markdown 与页码/标题/行号定位；不凭已有映射就推断笔记状态已通过 QA。
-- **每份/每批课件摄取后**：按知识索引与课程映射规范（`references/05-knowledge.md`）增量识别已确认的小节；对课件结尾明显未完结的知识单元，写笔记前先探测相邻下一份课件目录/开头页，无法闭合记为映射 `unverified` 并在 QA 记录受阻原因。
-- **每篇笔记生成并核验后**：将该行的关联正式笔记路径回填至 `source-map.md`；不重复写整个原始 Markdown，不将映射的 `verified/unverified` 充当 `pending/processing/qa_pending/completed/failed`。
-- **来源 Markdown 被修正后**：核查并更新所有引用该文件的行号区间与受影响的页码/标题锚点，旧区间重验前不可作为可靠切片定位。
-- **多 Agent**：`source-map.md` 是全局共享索引，与 README/QA 同由 Commander 或指定单一协调者写入；Worker 提交交接记录或映射建议，不并发修改。
-
-## 单个小节执行循环
-
-1. 从 `.build-state.json` 定位 `pending`/可恢复小节，对照实际文件、QA 和来源映射；来源边界 `unverified` 暂不可解决时先登记 QA、继续其他独立小节，不自动把来源状态当任务 `failed`；准备就绪后才更新为 `processing`。
-2. 优先从 `raw-markdown/source-map.md` 的当前小节多段坐标按需读取相关源 Markdown 片段、章节结构与必要前置知识；跨课件主题重组时依据来源核对条件及主符号对照。涉及新章节先核对源课件顺序；坐标失效须重验，不按猜测行号取段。
-3. 保存笔记与图片；文件真实落盘、非空后将 JSON 更新为 `qa_pending`。较长小节可用临时草稿，但不能视作完成笔记。
-4. 执行 L1 与必要 L2，同一 QA 问题最多两次实质性自动修复；通过后才把 JSON 标为 `completed`，失败必须先写 QA 再标 `failed`。README 仅在检查点同步，不随每次状态迁移重写。
-5. 失败后继续其他独立小节；若后续知识依赖失败片段，标出受影响范围，必要时隔离。不要拿未验证结论作可靠前置。
-6. 一章完成后执行 L3，生成简短章节摘要/复习入口并保存；可继续下一章，不逐章等待用户确认。
-
-## 断点恢复与最小上下文契约（Minimal Recovery Context）
-
-恢复启动时**只重建当前可执行小节的必要上下文**，而非重新读取整门课程、整段历史会话：
-
-1. **规则**：读取主入口（`SKILL.md`）、本批量执行与恢复规范（`references/07-execution.md`）及任务预检（`references/00-preflight.md`）；确定当前阶段后仅加载该阶段必需模块。
-2. **进度**：优先读取 `.build-state.json` 中的五态与工作指针，再结合 `README.md` 章节导航、来源映射及实际文件和 QA 核验；JSON 缺失或损坏时按证据优先原则保守重建。
-3. **风险**：从 `QA.md` 只读取当前小节及其前置依赖的未解决 P0/P1 项，必要时核对其他相关问题，保留隔离/影响标记。
-4. **原文**：优先读取 `raw-markdown/source-map.md` 中当前小节的可信多段坐标，再按可靠标题、页码/幻灯片及经核验行号读取对应 Markdown 局部片段；保留公式编号、条件、图注与逻辑衔接，不整份加载大型源文件。缺失映射时只建立当前必要定位，不虚构页界。
-5. **前置知识**：根据 README 定位依赖，优先读取对应已完成笔记的 `## 核心速览` 和必要定义/条件区块；仅在不足以验证当前推导时扩大读取范围，不加载无关的完整证明或历史正文。
-
-**六步恢复与证据优先级（Evidence Precedence）：**
-
-1. 定位 `.build-state.json`；若有 `.build-state.json.tmp`，核验是否完整、是否与正式状态及物理证据相容，不能凭时间戳自动替换或删除不明临时文件。
-2. 校验 JSON Schema、必要字段及合法状态；损坏/缺失时保留异常证据，再由真实文件、QA 和 README 重建可确认部分。
-3. 找到未完成且未被 QA 记录为本轮不可处理的待办小节，防止永久重试已失败内容。
-4. 核对实际教学笔记、临时产物及 `QA.md` 的通过、阻断和局部修复记录。
-5. 对照 `README.md` 学习导航与进度；从 `raw-markdown/source-map.md` 获取源位置而非任务状态。
-6. 按 **磁盘实际产物与 QA 证据 > `.build-state.json` > `README.md`** 仲裁和修正元数据，再从安全检查点继续；不通过删除、重生成或覆写历史文件掩盖冲突。
-
-**交叉核对与状态续做：**
-
-- `processing`：检查正式/临时文件的完整程度，定位真实可续点；不能以存在判定完成。
-- `qa_pending`：若笔记已完整，直接继续所需 QA，不重复生成。
-- `completed`：实际笔记与 QA 证据有效则跳过并保持只读；若文件不存在/为空或缺失 QA 证据，记录**幽灵完成态**并保守修正 JSON（无产物为 `pending`，有完整笔记但 QA 不明为 `qa_pending`，只有明确阻断证据才为 `failed`），**绝不因为纠正状态而覆盖现有笔记**。仅本次用户明确点名修订且先安全备份后，允许受控解锁为 `processing`。反向导航改 README/复习入口。
-- `failed`：本轮默认不重试，记录受影响依赖，留给用户或更强 Agent 后续处理。
-- `pending`：正常开始。
-
-进度标记应在关键写入成功后落盘，尽量使用临时文件再原子替换等安全写入策略。索引与文件不一致时，先核对 QA 和文件证据，选择保守且不会覆写用户成果的恢复路径；不因状态漂移自动覆盖已存在笔记。
-
-## 长任务上下文重锚定与客户端边界
-
-- 同一会话首次进入教学写作阶段时读教学规范（`references/02-pedagogy.md`）与 Obsidian 排版规范（`references/03-obsidian-style.md`）；连续同阶段小节复用当前仍可靠的规范，不机械重复读取。
-- 遇到上下文压缩/摘要，或单会话跨越完整章节而早期规范已被压缩/无法可靠确认时，在继续生成前**重新读取当前阶段核心规范**。若当前阶段规则仍可可靠引用，不必每节重新加载。
-- 不能假设宿主支持主动清空上下文、自动新建独立会话、原生派生子 Agent 或跨会话隐式记忆；仅实际探测且许可的能力才可使用，其他情况依靠磁盘上的文件、索引、QA 和检查点恢复。
-- 如果上下文或额度不足以安全继续，且当前环境无法真实恢复，在当前小节尽量保存阶段性成果、QA 与 `.build-state.json` 状态，在检查点同步 README 并将课程标为 `interrupted`、提供恢复入口和未完成范围；**不要**假称后台执行、自动新会话、已完成或已验证。
-
-## 索引与 QA 写入
-
-单 Agent 默认维护 `.build-state.json`、`README.md`、`QA.md`、`raw-markdown/source-map.md`；**机器 JSON 根据实际进度持久化，README 仅检查点同步**：重要小节 QA 完成（可合并 2–3 个小节）、章节 L3 结束、重大失败/依赖风险、中断恢复或最终交付。README 可短暂落后 JSON，但不能超前显示未验收内容已通过；不并发写入。**只有实际采用多 Agent 协作时**才加载多 Agent 协作规范（`references/08-multi-agent.md`），由唯一协调写入者归并索引、QA、知识依赖与复习入口；Worker 不直接改写共享文件。
-
-## 完成与最终交付
-
-所有计划小节都已尝试并达到 `completed` 或 `failed` 的终态，且完成章节级综合检查：
-- 无失败且交付结构完整：`completed`。
-- 部分失败但所有可独立任务均尝试、严重问题已隔离、README 和 QA 已汇总：`completed_with_issues`，**直接交付**，由用户或更强 Agent 后续修复。
-- 当前额度/环境中断而仍有未尝试的 `pending`：`interrupted`，保留检查点，不谎称整书完成。
-
-报告应有真实的输入数、已通过摄取检查的源文件数、计划/完成/失败/剩余小节数、主要未解决 QA ID、依赖风险、最终目录和复习入口。不要要求用户在构建过程中逐小节审批；仅权限不足、不可逆高影响改动、重要范围判断等特殊情况需征求确认。
+- Reuse active-stage specs within a clean session; **re-read the active stage's core spec** after context compaction or across long chapter transitions. Never assume host support for context clearing, auto-new sessions, or background execution.
+- If quota/limits interrupt execution while `pending` sections remain, flush current checkpoints, sync `README.md`, set `course_status` to `interrupted`, and report exact resume pointers.
+- Once all planned sections reach `completed` or `failed` and chapter L3 checks complete:
+  - Zero failures & complete structure → `completed`.
+  - Documented isolated failures remain → `completed_with_issues` (**deliver immediately**; do not block the whole course).
+- Final report must include real counts (ingested sources & coverage anomalies, planned/completed/failed/pending sections), open P0 QA IDs & dependency impacts, review hub paths, actual L1/L2/L3 verification scope, and concrete next-step pointers.

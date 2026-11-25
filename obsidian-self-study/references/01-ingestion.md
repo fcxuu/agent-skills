@@ -1,61 +1,57 @@
-# 01 · 通用文档摄取（Document Ingestion）
+# 01 · Tool-Agnostic Document Ingestion
 
-## 目标与输出契约
+## Goal & Output Contract
 
-将课程内的 PDF、PPT/PPTX、教材、讲义或已有结构化文本转换成**可追溯、可核验的 Markdown 源材料**，供后续教学重构使用。本模块**不依赖任何指定 OCR 服务**。原 PDF/PPT/其他文件保持原样，不修改、不搬移。
+Convert course PDFs, PPT/PPTX decks, textbooks, handouts, or existing structured text into **source-traceable, verifiable raw Markdown** for downstream teaching reconstruction. This module is **not bound to any specific OCR vendor**. Leave all source files untouched in place.
 
-- **每份源课件对应一份完整的 Markdown**，保存在课程目录的 `raw-markdown/`；不强制按小节拆分。最终教学笔记仍按知识小节组织，并在生成时按需读取原文片段。
-- 尽量保留原始标题层级、完整文本、LaTeX 数学、表格、关键图像及其来源、**可靠的原始页码（如 `P.12`）、幻灯片编号（如 `Slide.12`）及实际标题锚点**；不可可靠取得时标记缺失，不凭序号猜测。下游依照知识索引与课程映射规范（`references/05-knowledge.md`）定位逻辑小节。源资料是第一手校验依据，Markdown 不是经过审定的知识真值。
-- 输出需能回答：**来自哪个源文件、哪些页/幻灯片实际得到处理、哪些区域存在遗漏或不确定、图片放在哪里、采用什么方法**。
-- 输入已是 Markdown/LaTeX 等可读结构化文本时，可以直接核验和规范化，不要无谓地经过 OCR。
+- **One complete Markdown per source file** under `raw-markdown/`; do not pre-split raw captures by section. Final teaching notes are organized by logical section and slice-read on demand.
+- Preserve heading hierarchy, full text, LaTeX math, tables, key figures with provenance, and **reliable original page numbers (`P.12`), slide numbers (`Slide.12`), and heading anchors**; mark missing coordinates honestly instead of guessing.
+- Outputs must answer: *which source file, which pages/slides were parsed, where omissions or uncertainties exist, where extracted images live, and which method ran*.
+- If inputs are already readable Markdown/LaTeX, verify and normalize directly—do not run pointless OCR.
 
-## 分级能力发现与质量驱动路由
+## Tiered Capability Discovery & Quality-Driven Routing
 
-**Tier 0：复用有效产物。** 首先查找现有 `raw-markdown/<源文件名>.md`。核实文件非空、与本次源文件对应且之前记录的覆盖范围与异常可信；有可用的源文件哈希时优先核验哈希，否则结合文件路径、大小、修改记录及已有 QA 判断。证据不足时只标记「待核实」，不能仅因文件存在就称为完整。
+- **Tier 0 — Reuse verified artifacts:** Check existing `raw-markdown/<source>.md`. Verify non-empty content, match to the current source (prefer SHA-256 hash, else path/size/history/QA), and credible coverage notes. If evidence is insufficient, mark "needs verification" rather than assuming completeness.
+- **Tier 1 — Mounted document-parsing / OCR MCP tools:** Dynamically inspect callable tools, parameters, accepted formats, page mapping, and math/image fidelity. Never assume a named tool exists or handles PPTX.
+- **Tier 2 — Existing local CLIs/libraries:** In shell-enabled hosts, check already-installed parsers (e.g., MinerU, Marker, PyMuPDF, python-pptx/docx extractors). Do not install heavy packages, mutate system Python, or overwrite sources for convenience.
+- **Tier 3 — Host native multimodal vision:** If the host supports reading pages/images natively, transcribe in small controlled page batches and write to disk with explicit page markers; never load an entire textbook into one turn.
 
-**Tier 1：已挂载的专用文档解析/OCR 工具。** 动态发现当前会话真实可调用的工具及其参数、支持格式、页码和公式/图片能力，例如小米 OCR MCP、MinerU 的 MCP 接口或其他专业解析器。不能假定某工具必然存在或支持 PPTX。
+**Tiers govern discovery order, not a rigid quality ranking.** Choose the most reliable, cost-effective available method for the file's actual layout. If one tool fails on specific pages, patch only those pages with an alternate capability and merge into the single raw Markdown for that source. Do not re-parse the whole course just to compare tools.
 
-**Tier 2：现有本地解析工具。** 在允许执行命令的环境中检查已安装的 CLI/库，如 MinerU、Marker、PyMuPDF、PPTX/DOCX 结构化提取器。不要为了「兼容」擅自安装大型依赖、改动 Python 环境或转换、覆盖原文件。
+### File-Type Routing Hints
 
-**Tier 3：宿主模型原生文档/视觉理解。** 确认当前环境确实支持读取文件或页面图像后，按少量页/幻灯片分批转写并落盘，保留明确的页码映射；控制每批输入量，避免将整本教材或长篇 PPT 一次装入上下文。无法验证图文、公式完整性时不可宣称完全解析。
-
-**以上是能力发现的层级，不是机械的质量排名。** 在已可用的候选方式中，以文件形态、实际质量、资源和隐私边界选择最可靠且成本合理的方案。一个工具局部失败时可仅针对异常页面改用其他能力；修补后的输出仍整合为该课件的一份完整 Markdown。不要为比较工具而重复解析整门课。
-
-### 按文档形态匹配初始方案
-
-| 输入特征 | 优先考察的能力 | 特别风险 |
+| Source Characteristics | Preferred Capabilities | Key Risks |
 |---|---|---|
-| 可选择文本的原生 PDF，简单排版 | 直接抽取文字与页面结构；有公式则试专业数学解析 | 阅读顺序、上下标、分栏、向量公式 |
-| 扫描 PDF、图像课件、数学密集 PDF | 版面分析 + 数学 OCR / 专业文档解析 | 漏页、公式幻觉、图表与正文错位 |
-| 原生 PPTX / DOCX | 结构化提取文本、形状、内嵌原图；复杂页必要时补 OCR/多模态 | 公式对象、SmartArt、分组图形、阅读顺序、讲者备注 |
-| 少量手写或特殊布局页面 | 专业 OCR 或原生多模态逐页核验 | 字符误认、公式与图的关系误读 |
-| 已有 Markdown / LaTeX | 直接核验结构、图片引用、源文件关系 | 引用缺失、输入本身不完整 |
+| Selectable-text PDF, simple layout | Direct text/structure extraction; math parser if formula-heavy | Reading order, sub/superscripts, multi-column, vector equations |
+| Scanned PDF, image slides, math-heavy PDF | Layout analysis + math OCR / dedicated document parser | Dropped pages, hallucinated formulas, figure-text misalignment |
+| Native PPTX / DOCX | Structured extraction of text, shapes, embedded images; supplement complex slides with rendered vision/OCR | Equation objects, SmartArt, grouped shapes, reading order, speaker notes |
+| Handwritten or unusual layouts | Dedicated OCR or page-by-page multimodal verification | Misread symbols, detached figure captions |
+| Existing Markdown / LaTeX | Direct structural and link/image audit | Broken local paths, incomplete source |
 
-结构化提取**不等于完整保真**：PPTX 内的公式、图形对象或图片中文字可能无法通过简单 XML 文本抽取获得；若样本显示缺失，须补用页面渲染核对或其他可用解析方式。
+Structured XML extraction from PPTX/DOCX does not guarantee fidelity for embedded equations or text inside images—supplement with visual checks when samples reveal gaps.
 
-### 1–2 页探针（新工具或大/复杂课件）
+### 1–2 Page Probe (New Tools or Large/Complex Files)
 
-在整份解析前，优先选取 **1–2 页最具代表性、尤其包含公式/图表的页**试读，检查公式符号、表格/版式、图片与阅读顺序。若文件很短、工具已在同类材料上可靠验证，可减少或跳过探针并说明依据。探针不合格则尝试更适配的现有能力或记录限制；**不能把探针成功当成全文成功**。
+Before batch parsing, probe **1–2 representative pages rich in equations and figures** to inspect math notation, table/layout fidelity, image extraction, and reading order. Short files or already-proven tool/format pairs may skip probing with stated rationale. **Probe success does not prove full-document success.**
 
-## 摄取完成后的轻量验收（不代替教学 L2 QA）
+## Post-Ingestion Lightweight Acceptance Gate (Does Not Replace L2 QA)
 
-1. **Coverage：页/幻灯片覆盖核对。** 能可靠获取源文件总页数 `N_src` 时，记录它；能够逐页映射时，记录实际有输出并经过基本检查的页面集合 `P_parsed`，核对缺失页和重复页。仅比较锚点数量并不充分：空壳页不能视为已成功解析；封面或确实无可提取文本的图片页允许有依据的例外。若工具未提供页级映射，要标为「覆盖未能逐页核实」，而不能虚报 `N_parsed = N_src`。
-2. **Density：空页与异常密度检查。** 发现非封面、非纯图页异常短、乱码密集或出现异常长空段落时，优先针对该页核对/重扫。不要仅凭固定字符阈值判断图片页或图表页失败。
-3. **Sanity：公式和编码抽检。** 抽查数学密集页的分式、上下标、矩阵、运算符、量词、图表数字与符号；查找替换符 `�`、明显损坏的数学定界符或核心公式直接消失等迹象。检查只覆盖被抽取页，不能宣称整本公式都已验证。
+1. **Coverage:** Record total source pages `N_src` when reliably obtainable and the set of actually parsed pages `P_parsed`; check for missing or duplicated pages. Anchor count alone is insufficient—empty shell pages do not count as parsed (genuine cover or image-only pages are documented exceptions). If page mapping is unavailable, state "page-level coverage unverified" instead of claiming `N_parsed = N_src`.
+2. **Density:** Flag unexpectedly short non-cover/non-image pages, garbled text runs, or huge blank gaps for targeted re-check/re-scan. Do not fail genuine diagram-only slides on a rigid char count.
+3. **Sanity:** Spot-check math-heavy pages for fractions, sub/superscripts, matrices, operators, quantifiers, plot numbers, replacement chars ``, broken math delimiters, or vanished core equations. State clearly that spot-checks cover only sampled pages.
 
-**工具返回成功码或产生非空文件 ≠ 通过验收。** 解析完成有缺页/重要缺图/公式错误时，先尝试局部补扫，保留原始错误证据，无法修复则隔离该范围并交由 QA；其余可靠部分可继续，但不得将缺损内容作为已核验的前置知识。
+**Exit code 0 or a non-empty file ≠ passed ingestion.** Attempt targeted page recovery first; preserve error evidence, isolate unrecoverable ranges in `QA.md`, and continue other reliable sections without treating damaged passages as verified prerequisites.
 
-## 存放、来源映射与记录
+## Storage, Anchors & Logging
 
-- 在课程目录中使用 `raw-markdown/`，每份源课件一份完整 Markdown，例如 `raw-markdown/4知识图谱技术原理（下）.md`；文件名冲突时使用稳定且可追溯的区分名，不覆盖无关成果。
-- 若可获取可靠页码/幻灯片号，在原始 Markdown 中保留轻量可定位锚点（如 HTML 注释 `<!-- source-page: 12 -->`）、标题层级及必要原始顺序，或保存工具提供的可信位置映射。**不得凭空制造页码、位置或内容**。OCR/解析工具不提供精确页界时要如实标注。`raw-markdown/source-map.md` 使用这些可信锚点按需建立区间；原始 Markdown 有补扫、纠错或增删时须重验其中所有引用该文件的行号范围，不能沿用漂移的旧行号。
-- 能可靠提取的图片保存到 `assets/original/`，登记源文件及页码/位置；核实图片文件存在且可读。正文图像选取与必要重绘由图片规范（`references/04-images.md`）规定。
-- 对每个源文件，README 中只记录**源文件 → 原始 Markdown → 已知覆盖范围/状态 → 简要异常与 QA ID**，保持学生可读的导航；**实际工具名称、探针与回退记录、缺页详情、纠错证据**写入 `QA.md` 的解析/构建元数据或问题记录。对成功且无异常的材料只需简短方法记录，避免日志膨胀。
-- 能从源材料可靠确认的文字/公式纠错，记录证据与位置后用于教学重构；不得默默篡改原件或凭模型猜测修复。
-- 对不可访问/不支持/解析失败的材料记录受阻范围，继续其他独立文件；影响后续知识依赖时显式传递风险。
+- Save one full Markdown per source under `COURSE_DIR/raw-markdown/` (using stable, collision-safe filenames).
+- Insert lightweight anchors when page/slide numbers are reliable (e.g., `<!-- source-page: 12 -->`); never fabricate page numbers. When `raw-markdown/*.md` is patched or edited later, re-verify every line range referencing it in `raw-markdown/source-map.md`.
+- Archive reliably extracted original figures under `assets/original/` with source filename and page/slide provenance, verifying each file exists and is readable (see `references/04-images.md`).
+- **Keep `README.md` concise:** log only `source → raw-markdown → coverage status → brief anomaly/QA ID`. Put tool names, probe/fallback notes, missing-page details, and OCR correction evidence into `QA.md`.
+- Confirmed OCR corrections verified against the original source are recorded with evidence and applied during teaching reconstruction—never silently guess fixes.
 
-## 权限、成本和安全边界
+## Permissions, Cost & Safety
 
-- 优先使用已有、获授权的工具；不因工具名熟悉就推断其可用或免费。
-- 安装大型依赖、消耗明显费用、改变环境配置，或将未获授权的课程资料上传外部解析服务前，必须取得相应授权；优先考虑本地且无破坏性的路径。
-- 所有摄取产物应能在中断后复用。无需构建复杂的源文件通用同步系统或用户学习期间修改合并机制。
+- Prefer pre-existing authorized local tools; never assume an external service is free or available.
+- Obtain explicit approval before installing heavy dependencies, incurring material API cost, changing environment configs, or uploading private course files externally.
+- Make every ingestion artifact resumable on disk without building a general live-sync engine.

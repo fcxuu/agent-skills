@@ -1,41 +1,41 @@
-# 03 · Obsidian 2A 卡片式排版
+# 03 · Obsidian Structured Callout & Math Formatting
 
-## 基本原则
+> **Quick Index:** Callout Semantics · `## 核心速览` Contract · Provenance & Isolation Callouts · Math Tag/Reference Boundaries · Mermaid & Image Nesting · Math & Syntax Example
 
-使用 Obsidian **原生** Markdown / Callout / 双链 / MathJax；默认不依赖 CSS Snippets 或第三方插件。对人易读，对 Agent 可编辑。对外教学风格称“精炼课堂笔记风格”“系统自学教材风格”，不要在正式笔记里使用内部试验代号。
+## Core Principle
 
-## Callout 语义
+Use **native Obsidian** Markdown, Callouts, wikilinks/relative links, and MathJax—no CSS snippets or third-party plugins required. Keep notes readable for students and cleanly editable by agents. Never leak internal style codenames into generated student notes.
 
-| 内容 | 建议类型 | 展开规则 |
+## Callout Semantics
+
+| Content Role | Callout Type | Default State |
 |---|---|---|
-| 本节核心速览 | `[!abstract]` | 始终展开 |
-| 定义、定理、重要公式 | `[!info]` | 始终展开 |
-| 关键理解、必要跳步、重要图解 | `[!tip]` | 始终展开 |
-| 假设、限制、易错点 | `[!warning]` | 始终展开 |
-| 较长证明或完整推导 | `[!note]-` | 默认折叠 |
-| 例题 | `[!example]` + 必要时 `[!example]-` 解答卡片 | 题目展开、答案折叠 |
-| 额外背景和拓展 | `[!note]-` | 默认折叠 |
+| Section quick summary | `[!abstract]` | Expanded |
+| Definitions, theorems, core formulas | `[!info]` | Expanded |
+| Key intuition, essential bridges, core figures | `[!tip]` | Expanded |
+| Assumptions, limits, pitfalls, quarantine | `[!warning]` | Expanded |
+| Long proofs or full derivations | `[!note]-` | Folded |
+| Worked examples | `[!example]` + `[!example]-` solution | Problem expanded, solution folded |
+| Extra background / extensions | `[!note]-` | Folded |
 
-单张卡片承担一个主要任务；相邻、紧密相关的公式可以放在一张定义卡片，不必每个公式都单独开框。尽量避免多层 Callout 嵌套，尤其例题解答不要无限嵌套。图像与图注、必要解释须置于对应 Callout **内**。
+Give each card one main job; group tightly coupled formulas in one card rather than boxing every single equation. Avoid deep callout nesting. Place essential images, captions, and explanations **inside** their governing callout.
 
-## 稳定的期末速览边界
+## Stable `## 核心速览` Boundary (Exam Review Contract)
 
-每篇正式笔记有且仅有一个精确的二级标题 `## 核心速览`，放在 YAML Frontmatter 和 `# 笔记标题` 之后、所有详细正文之前。嵌入范围在**下一个同级 `## ` 标题之前**结束；区块内部**不得使用任何 Markdown 子标题**（`###`、`####`、`#####`、`######`），也不得插入会提前截断速览的第二个 `##`。内部分类用**列表项加粗**或 Callout 标题，不污染复习页 Outline。
+Every formal teaching note must have **one and only one** level-2 heading `## 核心速览`, placed right after YAML frontmatter and `# Note Title`, before all detailed body sections. The review embed stops at the next `## ` heading:
+- **Forbidden inside `## 核心速览`:** any subheadings (`###` through `######`), a second `## 核心速览`, MathJax `\label{}`/`\eqref{}`, Markdown footnotes (`[^1]`), unnecessary block IDs (`^block-id`), long derivations, folded extensions, quarantined claims, or dangling references ("see proof below", "as in the figure later").
+- Use **bold bullet items** or callout titles for internal grouping so review outlines stay clean.
+- Review hubs embed completed notes via Obsidian native `![[UniqueFileName#核心速览]]` (omitting `.md`) **only after confirming filename uniqueness across the full vault**. On collision, emit a normal relative link `[查看核心速览](../notes/ch05/target.md#核心速览)` and log the collision in `QA.md`—never pass `![alt](note.md#heading)` off as a verified native heading embed, and never rename read-only completed notes to resolve collisions.
 
-速览必须**离开原文也能独立理解**：只保留已核验的关键定义、结论、必要适用条件、核心公式和简短直觉，不放完整证明、长推导、折叠拓展或待核验内容；禁止「见下文证明」「如后续图所示」「如上一节定义」等悬空指代。必要时给出明确的公式编号、定义和真实链接，而非引用正文位置。
+## Provenance Tags & Quarantine Callouts
 
-复习页为了在不同 Vault 根目录中保持有效，使用 Obsidian **原生标题嵌入** `![[全 Vault 中唯一的笔记文件名#核心速览]]`，例如 `![[gdm-ch05-04-dominance#核心速览]]`。生成时必须检查当前最大 Vault 内的重名情况；不唯一时不得自动嵌入错误页面，可改为文件相对普通链接 `[打开核心速览](../notes/ch05/目标.md#核心速览)` 并登记无法内嵌的限制。**`![核心速览](note.md#核心速览)` 是 Markdown 图片语法，不能未经验证当成原生笔记标题嵌入。** 源笔记只读不因解决重名自动改名，复习不复制第二份正文。
+- **Short additions (1–2 sentences):** Inline `**[推导补全]** ...` or `**[直觉桥接]** ...` without forcing a separate card.
+- **Multi-step derivations / deep intuition:** Expanded `> [!tip] [推导补全] ...` or `> [!tip] [直觉桥接] ...`.
+- **Extensions:** Folded `> [!note]- [拓展补充] ...`.
+- **Unverified quarantine:** Expanded `> [!warning] [待核验隔离] ...` with source file, page/line, risk, and QA ID. Never hide unverified risks inside folded blocks.
+- **Cross-source symbol mapping:** Use a `[符号对照]` table/list mapping source symbol, primary note symbol, mathematical object, and provenance.
 
-## 来源标签与隔离 Callout
-
-- **短补全轻量化**：仅需 1–2 句话的新增说明，使用 `**[推导补全]** ...` 或 `**[直觉桥接]** ...` 融入正文/列表，不强制建卡片；多步公式或独立复杂解释才用展开的 `[!tip]`。
-- **严格补全**：展开 `> [!tip] [推导补全] ...`，保留前提和数学依据；必要桥接不能隐藏在折叠证明中。
-- **直觉桥接**：展开 `> [!tip] [直觉桥接] ...`，明确直觉不等于证明。
-- **延伸知识**：默认折叠 `> [!note]- [拓展补充] ...`（也可用 `[!info]-`）。
-- **待核验隔离**：展开 `> [!warning] [待核验隔离] ...`，附可靠的课件/页码、风险和 `QA.md` 对应编号；绝不将未知风险藏在折叠区。
-- **跨源符号对照**：必要时用 `[符号对照]` 表格或列表列出来源符号、笔记主符号、数学对象与出处，严禁将不同假设下的对象混同。
-
-Obsidian 语法示例（Callout 内所有内容和分隔空行均加 `>` 前缀）：
+Every line and blank separator inside a callout must keep the `> ` blockquote prefix:
 
 ````markdown
 > [!tip] [推导补全] 为什么成立？
@@ -55,29 +55,21 @@ Obsidian 语法示例（Callout 内所有内容和分隔空行均加 `>` 前缀�
 > 主结论的核心假设尚不明确，暂不将其作为已证实结论；详见 QA.md。
 ````
 
-**`## 核心速览` 纯净度**：仅放已核实的核心定义、公式、主结论、条件和可靠的简短直觉；不得放冗长 `[推导补全]`、折叠 `[拓展补充]`、`[待核验隔离]` 或因其而不可靠的结论，以免被复习页面嵌入后误当定论。
+## Math Identifier & Equation Reference Boundaries
 
-## 嵌入区域标识符与数学引用边界
+- **Do not use `\label{...}` or `\eqref{...}` by default** in notes or `## 核心速览`—embedding multiple notes on one review page can trigger duplicate-label or unresolved-reference failures in MathJax.
+- Preserve original textbook numbering via `\tag{3.7}` and reference it in prose ("由式 (3.7) 可得"); leave agent-added bridge equations unnumbered. Do not renumber an entire course.
 
-- **正文和速览默认不使用** MathJax `\label{...}` 与 `\eqref{...}` 自动标签引用；同页嵌入多篇笔记或动态渲染可能产生标签重名、未解析编号等问题。默认用源教材已有的 `\tag{3.7}` 显示编号，正文用「由式（3.7）可得」自然语言引用，跨笔记引用用 Obsidian 双链定位已存在的目标。仅在用户明确限定客户端、且真实验证标签机制兼容后，才考虑例外；未经渲染测试不得保证零冲突。
-- **速览区进一步禁止** Markdown 脚注标记（例如 `[^1]`）、无必要的 Obsidian 块 ID（例如 `^block-id`）、无定义的上下文代词及跨页依赖；需要解释的备注直接内联简述，详细脚注和证明留在正文。
-- 如果已有原式编号，保留 `\tag{...}` 的原始编号，不强制把多个独立文件的全部公式重新编号；Agent 新增桥接公式默认不编号。避免在同一被嵌入片段里重复声明有歧义的数学标识符。
+## Images, Relative Links & Mermaid inside Callouts
 
-## Mermaid、图片与 Callout 的嵌套边界
+- Compute all local image paths (`![caption|550](../../assets/original/P05/fig.png)`) and ordinary note links (`[title](../ch04/note.md)`) relative to the **current Markdown file's directory**, strictly inside `COURSE_DIR`.
+- Tag each figure caption with **exactly one** image provenance label (`[原图]`, `[忠实重绘]`, or `[教学示意]`)—do not stack redundant `[直觉桥接]` cards around a figure.
+- When placing a Mermaid block inside a callout, **every line—opening fence, diagram edges, internal blank lines, and closing fence—must start with `> `** so the callout does not break.
+- Static PNG/SVG assets must maintain high contrast across both light and dark Obsidian themes (details in `references/04-images.md`).
 
-- 所有本地图片链接基于**当前 Markdown 文件目录**计算相对路径（如 `![图示|550](../../assets/original/P05/fig.png)`），在不同 Vault Root 下不变；图注宽度置于 alt 中的 `|550`。普通课程笔记导航使用 `[标题](../ch04/笔记.md)` 同样的文件相对格式；Callout 内每行保持 `>` 前缀。重要数学图和图注紧邻其所解释的公式/定义，放在**默认展开**的相应 Callout 内；可选附图才折叠。图注只标一类图像来源（`[原图]`、`[忠实重绘]`、`[教学示意]`），不必为图像再嵌一层来源卡片，和 C2 的 `[直觉桥接]` 标签各司其职。
-- Obsidian 原生 Mermaid 置于 Callout 时，**起止围栏、全部 Mermaid 节点/箭头定义及内部空行都必须带 `> ` 行首前缀**；不要出现裸空行或裸反引号围栏导致块引用中断。需要实际渲染核对时才报告渲染成功。示例详见图片处理（`references/04-images.md`）。
-- 静态 PNG/SVG 图必须在深浅主题下保持文字/背景高对比，坐标与图例不过小；具体绘图依据、原图对照和 L2 数学核验归图片处理模块规定。
+## Math Formatting & Reference Example
 
-## 数学排版
-
-- 使用 `$...$` 内联公式，`$$...$$` 块公式；多行使用 `\begin{aligned}...\end{aligned}`。一律保留原始数学含义与符号风格。
-- 关键结论少量使用 `\boxed{}`；不能以美观为由修改符号或省略假设。
-- **保留原教材的公式编号**，例如 `\tag{3.7}`；新增的桥接公式**默认不编号**。不要擅自全书重新编号。
-- 对复杂公式可在公式前后添加非常简短的语义解释；真正阻碍理解的跳步放展开的 `[!tip]` 中。
-- 公式、表格、Callout 和图像在小屏幕上应避免过宽。Obsidian 实际渲染未经测试时，不声称已经验证完美。
-
-## 可用的 Obsidian 语法示例
+Use `$...$` inline, `$$...$$` display, and `\begin{aligned}...\end{aligned}` for multi-line math; use `\boxed{}` sparingly for hero results. Never claim Obsidian rendering is verified unless actually inspected in Obsidian.
 
 ````markdown
 ## 核心速览
@@ -96,7 +88,7 @@ Obsidian 语法示例（Callout 内所有内容和分隔空行均加 `>` 前缀�
 >
 > ![t 分布与正态分布对比|550](../../assets/generated/t-vs-normal.svg)
 >
-> **观察：** 对比尾部随 $|t|$ 变大时的密度。
+> **图 1.1 [教学示意]**：对比尾部随 $|t|$ 变大时的密度。
 
 > [!warning] 适用条件
 > 精确的经典单样本 t 结论需要独立正态样本等假设。
@@ -111,4 +103,4 @@ Obsidian 语法示例（Callout 内所有内容和分隔空行均加 `>` 前缀�
 > 这里给出完整解法。
 ````
 
-上述 `认知智能/` 是示例课程路径，实际请从当前 Vault 计算正确路径。源图与生成图不得被写成不存在的嵌入。
+Always compute actual relative paths from the current note's parent directory; never leave links to non-existent image files.

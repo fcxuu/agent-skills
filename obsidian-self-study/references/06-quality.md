@@ -1,81 +1,66 @@
-# 06 · 分级风险 QA、局部返工与报告
+# 06 · Graded QA, Local Rework & Risk Propagation
 
-## 三层检查
+> **Quick Index:** 1. Three QA Tiers (L1/L2/L3) · 2. Deterministic L1 Scope (Summary, Links, Images, Source Map) · 3. Pedagogy & Quarantine Checks · 4. Defect Severity (P0/P1/P2) · 5. Local Rework Cap · 6. Post-Completion Risk Handling · 7. `check_vault.py` Boundaries
 
-| 层级 | 触发 | 必查内容 |
+## 1. Three QA Tiers
+
+| Tier | Trigger | Required Checks |
 |---|---|---|
-| L1 基础 | 每篇正式笔记 | `## 核心速览` 唯一且在主标题之后、正文之前；速览内部无 Markdown 子标题/`\label{}`/`\eqref{}`/脚注；来源映射/LaTeX/双链/复习路径，图片文件实际存在、图注来源类别及**基于引用文件的相对路径**有效，目标不越出课程目录、Mermaid 围栏与 Callout 引用层级完整 |
-| L2 风险复核 | 摄取结果/OCR 可疑、数学密集、跨课件缝合、复杂推导、Agent 新增的重要论证/数学图 | 与原文比对 source-map 和公式/假设/符号、检查多步 `[推导补全]`；对关键新增曲线、`[忠实重绘]` 和图论/几何图交叉核验原图、可靠公式/参数、图结构及图注，不能用外观相似替代数学核验 |
-| L3 章节综合 | 每章完成 | 源课件与 source-map 的章节覆盖、跨课件小节边界与衔接、依赖风险传播、重复/冲突知识、符号一致性、章节复习入口、导航与图片完整性 |
+| **L1 (Baseline)** | Every formal note | Unique `## 核心速览` right after title with no subheadings/`\label`/`\eqref`/footnotes; valid `source-map.md`, LaTeX, relative links/images inside `COURSE_DIR`, image file existence & provenance label, intact Callout/Mermaid quote prefixes |
+| **L2 (Risk Review)** | Suspect OCR/ingestion, dense math, cross-slide synthesis, multi-step `[推导补全]`, key plots / `[忠实重绘]` | Cross-check `source-map.md` and original source formulas/hypotheses/notation; verify added derivations step by step; verify key curves, `[忠实重绘]` (against `assets/original/` when extractable), and topology diagrams against formulas/data |
+| **L3 (Chapter)** | End of each chapter | Chapter source coverage vs. `source-map.md`, cross-slide boundaries, dependency risk propagation, duplicate/conflicting concepts, notation consistency, chapter review hub, navigation & figure completeness |
 
-静态检查不代替人工或模型的数学核验，也不代替 Obsidian 实际阅读视图检查。不能在报告中写未实际执行的审核结果。
+Static checks never replace mathematical verification or live Obsidian reading-view inspection. Never report checks you did not run.
 
-## E1 核心速览与数学标签的静态验收口径
+## 2. Deterministic L1 Acceptance Scope
 
-L1 对正式笔记和复习入口执行以下**可确定性核对**：每篇笔记恰有一个真实的二级标题 `## 核心速览`，处于 YAML/主标题之后、详细正文之前；直到下一个 `## ` 标题为止，内部无任何 `###` / `####` / 更深层子标题（且不允许第二个 `## 核心速览`）；速览文本无 `\label{}`、`\eqref{}`、脚注引用 `[^1]` 或不必要的块 ID `^...`；复习标题嵌入采用**经当前最大 Vault 文件名唯一性检查**的原生 `![[唯一笔记名#核心速览]]`；如果重名，仅使用文件相对 `[查看核心速览](../notes/chXX/笔记.md#核心速览)` **普通跳转**并在 QA 登记，不能拿 `![alt](note.md#标题)` 当原生嵌入。**完整教材笔记默认也不使用未经验证的动态公式标签引用**，原编号用 `\tag{...}`；新增公式不编号。
+- **Summary & math tags:** Exactly one `## 核心速览` between `# Title` and the next `## ` heading; no `###+`, no `\label{}`/`\eqref{}`, no footnotes `[^1]`, no stray block IDs `^...`. Native review embeds (`![[UniqueFileName#核心速览]]`) require vault-wide filename uniqueness; collisions must use normal relative links and be logged in `QA.md`. Original textbook numbers use `\tag{...}`; added equations stay unnumbered.
+- **Images & links:** All relative Markdown image/note links resolve from the containing `.md` directory and stay strictly inside `COURSE_DIR` (and `VAULT_DIR`); OS absolute paths or course escapes are errors. Image targets exist and carry one provenance tag (`[原图]`/`[忠实重绘]`/`[教学示意]`). Callout-nested Mermaid fences and blank lines preserve `> ` prefixes.
+- **Source map:** Every `source-map.md` entry cites real source/raw-markdown files and valid coordinate syntax (`verified` means boundary-checked only, never QA-passed). Stale line ranges after `raw-markdown/` edits must be re-verified before reuse.
+- **L2 image verification:** For key math/stat plots, geometry/graph diagrams, and all `[忠实重绘]`, cross-check against archived originals (`assets/original/`) and verified formulas/data; check light/dark theme contrast (opaque light background, title ≥ 12 pt, labels ≥ 10 pt). If an original was unextractable, state explicitly that no visual original comparison occurred.
 
-静态规则只能检出结构或明显语法风险；「见下文证明」等悬空指代、公式含义、已完成 QA/未决 P0 及真实 Obsidian 渲染需结合语义或实际证据核查。E3 的只读检查脚本（`scripts/check_vault.py`）现已实现上述可确定性结构/路径检查；超出脚本的语义理解与实际客户端渲染仍须另行验证。嵌入前须交叉核对 `.build-state.json`、QA 与实际笔记；后续出现 P0 时仅更新复习页嵌入/风险提示，不能回写已完成正文。
+## 3. Pedagogical Addition & Quarantine Checks
 
-## E2 图像真实性与可读性验收
+- Faithful synthesis needs no per-sentence tag; substantive additions use `[推导补全]`, `[直觉桥接]`, `[拓展补充]`. Complex multi-step additions trigger L2.
+- Distinguish explicit non-source illustrative assumptions from missing core theorem hypotheses (missing core hypotheses must be quarantined, not patched over).
+- Verify `[符号对照]` traces to real source pages and genuinely equivalent objects/dimensions.
+- Quarantine (`[待核验隔离]`) applies only to real substance risks (missing core premise, undefined symbol, corrupted source, irreconcilable conflict, unjustified derivation)—never merely because slides omitted a proof. Every quarantine block must link to a `QA.md` entry and stay out of `## 核心速览`.
 
-- **L1 可自动检查部分**：图片及 Markdown 普通链接按当前 `.md` 的目录解析，合法 `../../assets/...` 必须位于 `COURSE_DIR` 中且在当前 Vault 内；越出课程（即使仍在 Vault 内）或使用 OS 绝对路径为 Error。图片目标真实存在且可读；路径与资源归档一致；来源图注采用唯一的 `[原图]` / `[忠实重绘]` / `[教学示意]` 标签；Callout 内图片/图注与 Mermaid 的代码围栏起止行、每条图定义行及空行保留 `> ` 引用前缀。对于未生成的模板占位不能当成真实图片。静态脚本仅能检查路径、明显图注和 Mermaid 引用/围栏等结构风险；实际 SVG/PNG 内容、源图对比及 Obsidian 视觉效果列为 `not_checked`，不得标注自动验收通过。
-- **L2 必须实质核验**：重点数学曲线、统计图、关键图论/几何关系及全部 `[忠实重绘]`，须对照原图（可可靠提取时，要求存于 `assets/original/` 并在图注注明原图路径）、已确认公式/原始数据/参数或严格拓扑；检查方向、单位、轴标签、合成/实测数据区分与结论一致。原图确实不可提取时记录缺失和替代数学证据，**不能声称完成视觉原图对照**。
-- **渲染可读性**：生成 Matplotlib/SVG 图时检查不透明浅色背景、标题建议至少 12 pt、坐标标签/图例建议至少 10 pt、裁切和深浅主题对比；字体建议不构成数学准确性证据。Mermaid/Obsidian 的真实渲染须实际打开验证才可声称通过。
-- **QA 隔离**：关键图片缺失或关系不可确认时，在 `QA.md` 记录源位置和受影响小节，按 P0/P1 实际影响分级；不要因为图缺失而自动否定其他独立内容。图像规范见图片处理（`references/04-images.md`）。
+## 4. Defect Severity
 
-## 增量来源映射质量门槛
+- **P0 (Blocker):** Wrong or unconfirmable core formula/theorem, wrong key data plot, or missing source preventing verification of a main conclusion. Cannot be offset by good formatting; quarantine affected claim and dependencies; note cannot be marked `completed`.
+- **P1 (Major):** Missing key comprehension bridge, essential diagram, review item, or important link. Fix locally when possible; otherwise log clearly.
+- **P2 (Minor):** Minor heading inconsistency, slight redundancy, minor formatting polish. Fix opportunistically; never loop endlessly.
+- **Unverifiable** is its own evidence state—never disguise it as confirmed-true or confirmed-false.
 
-检查 `raw-markdown/source-map.md` 的每条逻辑小节映射是否包含真实源课件、对应原始 Markdown、可信页码/幻灯片或标题锚点、可用时的有效行号范围及 `verified/unverified` 边界状态。**映射 `verified` 只表示来源边界核验，不意味着小节已完成 QA。**
+## 5. Local Auto-Repair & Stop-Loss
 
-L1 静态核验文件存在、范围格式及明显越界；可靠页面位置与修订后行号是否对应真实源内容、跨课件拼接是否覆盖完整公式/假设，则按风险交由 L2 对源文件确认。检测到原始 Markdown 增删而相关行号尚未重验时，不得继续依赖旧区间；记入 QA 并局部修复。右边界未闭合、缺页或实质数学/符号冲突须记录源课件与范围并隔离受影响知识，不阻塞无依赖的其他小节。
+1. Pinpoint the exact source file, page/line (if known), section, formula, or callout and log observed evidence.
+2. Repair locally only when grounded in solid evidence (source check, verified OCR fix, link/path/callout fix)—never guess unconfirmable source text.
+3. **Cap at 2 substantive auto-repair attempts per QA issue**; if still unresolved, stop retrying, quarantine/record in `QA.md`, and move on.
+4. Re-check the edited passage and immediate context without spilling edits into unrelated completed files.
+5. On unresolvable P0: write `QA.md` **first**, then record `failed` in `.build-state.json` (with failure evidence), sync `README.md` at checkpoints, and propagate downstream risk while continuing independent sections.
 
-## 教学补全来源与隔离专项核验
+## 6. Post-Completion Risk Handling (Protected `completed` Notes)
 
-- **来源标记**：忠实原文整理无需逐句标签；实质新增严格推导用 `[推导补全]`，直觉用 `[直觉桥接]`，课外延伸用 `[拓展补充]`。复杂新增多步推导、补入关键条件须执行 L2；短解释可行内标记，不能单靠标签判定真实可靠。
-- **假设检查**：区分「仅为展示特例引入、已显式标注为非原文的辅助工作条件」与「源主定理成立不可缺失的核心前提」。后者无法核实时必须隔离受影响主张，不能使用新假设冒充原结论。
-- **跨源符号**：检查 `[符号对照]` 能追溯源课件与 `raw-markdown/source-map.md` 的真实页码，统一记号的对象及维度确实等价；不许合并前提不同的公式。
-- **隔离与速览**：只有核心前提不明、关键符号无法确定、源材料严重损毁、不可调和冲突或新增论证无依据等实质风险才隔离；普通 PPT 未给出证明不能单独触发。`[待核验隔离]` 必须与 `QA.md` 中对应问题及依赖相互可追溯，不能把未核实内容、折叠拓展或冗长补全写入 `## 核心速览`。
+A protected `completed` note (`status == completed`, non-empty disk file, passed L1/L2, no open core P0) is **read-only**. When new issues surface later, update **metadata and external navigation only—never overwrite the completed body automatically**:
 
-## 缺陷分级
-
-- **P0 阻断**：核心公式/定理错误或无法确定、关键数据图错误、来源缺失导致重要结论无法核对。不能被排版总分抵消；隔离不可靠部分及依赖，笔记不得标为完全通过。
-- **P1 重要**：影响理解的关键跳步、必要图、复习重点或关键链接缺失。优先局部修复，未修复应记录问题。
-- **P2 一般**：标题不统一、少量冗余、非关键排版瑕疵。可修复但不无限重试。
-- **无法核验**是单独的证据状态，不能伪装成已确认正确或已确认错误。
-
-## 自动修复与隔离
-
-1. 定位到**具体源文件/页码（若可得）/小节/公式或 Callout**，记录原始观察与可能影响。
-2. 有明确依据才局部修复：校对源页、纠正已证实的解析/OCR 漏号、修正明确的链接/图片路径或错误的折叠格式。不要凭记忆硬补无法确认的原文。
-3. 同一问题最多默认 **2 次有实质变化的**自动修复；然后停止该问题的尝试、记录待核验，不要无限反复生成整篇。
-4. 修复后重查修复段落与有关上下文；不要把改动范围扩散到无关已完成文件。
-5. P0 无法解决则先在 `QA.md` 记录，再依照 D1 状态规则在 `.build-state.json` 中标 `failed`（须有本轮失败证据）或保留阻断中的未完成态；README 只在检查点同步学习风险摘要，并标记依赖方向。其他独立内容继续；后续依赖若能从独立可靠来源确认，可继续并记录证据。
-
-## 完成态出现新证据时的风险处置（D2）
-
-受保护 `completed` 必须满足：JSON 状态为 `completed`、磁盘笔记存在且非空、必要 L1/L2 已通过、无影响核心结论的未解决 P0。新发现问题时，**仅修改 QA/状态元数据与必要的外部导航，不修改已完成正文**：
-
-| 新证据等级 | QA.md 与下游依赖 | `.build-state.json` | README / review | 原完成态笔记 |
+| New Finding | `QA.md` & Dependencies | `.build-state.json` | `README.md` / `review/` | Completed Note Body |
 |---|---|---|---|---|
-| P2 一般排版、措辞等 | 记录具体问题及证据 | 保持 `completed` | 无须额外提示 | 不修改 |
-| P1 不推翻主结论的局部条件/说明缺陷 | 记录 QA ID、定位与受影响范围 | 保持 `completed`，关联 `qa_ids` | 对相关导航/复习内容加必要的简短风险提示 | 不修改 |
-| **P0 核心定义、前提或主结论错误** | **先**登记来源、QA ID、已引用该笔记的后续章节及直接/间接依赖 | **从 `completed` 纠正为 `failed` 并关联 `qa_ids`；绝不转为 `pending` 或 `processing`** | 停止无警示引用受影响结论，必要时排除嵌入或明确警告 | **不得自动覆写或重生成** |
+| **P2** minor polish | Log issue & evidence | Keep `completed` | No extra notice needed | Do not modify |
+| **P1** local gap (main claim holds) | Log QA ID, location, scope | Keep `completed`, append `qa_ids` | Add brief risk note where helpful | Do not modify |
+| **P0** core definition/premise/claim error | **First** log source evidence, QA ID, and downstream dependents | **Demote `completed → failed`** and append `qa_ids` (never `pending`/`processing`) | Remove/warn affected embeds and stop treating as verified prerequisite | **Never auto-overwrite or regenerate** |
 
-风险传播依照知识索引和实际已建立的双链/依赖记录核对，标记可能受影响的后续课程小节，不能仅靠同名关键词推断已受影响；即使下游笔记已完成，也只在 QA 登记需复核并在导航处提示风险，不自动改写下游正文。**状态降级不是正文写权限**，已核实新 P0 与 D1 中「从未真正满足完成条件的幽灵完成态」区分处理。受控修订须由本次可信用户明确点名，按执行与恢复规范（`references/07-execution.md`）先创建 `.md.bak` 非正式笔记备份、受控解锁并复核。
+Trace downstream risk via actual links/dependencies (not mere keyword overlap). **Status demotion is NOT body-write permission.** Distinguish genuine post-QA P0 demotion from corrupt "ghost completed" metadata (missing file/QA). Controlled body edits require explicit user naming of the note and scope plus `.md.bak` backup (`references/07-execution.md`).
 
-## README 与 QA 关系
+## 7. Static Checker (`scripts/check_vault.py`) & Its Limits
 
-- `README.md` 仅放检查点状态摘要、笔记路径、知识索引、QA ID 引用，不放机器微状态或冗长返工日志；机器五态持久化于课程根目录 `.build-state.json`。
-- `QA.md` 保存每个问题的 ID、等级、源课件和定位、影响目标、症状、核验依据、修复尝试、后续动作、依赖范围和状态。
-- 默认由当前构建 Agent 直接维护 `QA.md`；仅实际启用多 Agent 时才按多 Agent 协作规范（`references/08-multi-agent.md`）由唯一协调者归并 Worker 的独立问题报告。
-- 严重问题不会因为章节结束或整书交付而自动变成通过。`completed_with_issues` 是交付状态，不是知识质量认证。
+Run from any directory using verified `$SKILL_DIR`:
 
-## 文档摄取验收与质量分层
+```bash
+python3 "$SKILL_DIR/scripts/check_vault.py" --vault "$VAULT_DIR" --course "$COURSE_DIR" --json
+```
 
-文档摄取结束前须依据文档摄取规范（`references/01-ingestion.md`）做轻量质量门槛：核对源文件页/幻灯片数量和可核实的解析覆盖，筛查异常空壳页，并抽查公式与编码。页码锚点数相等或工具返回成功码，都不等于内容完整。无法逐页追溯时明示限制，在 `QA.md` 记录工具、探针和回退的必要证据；正式课程 `README.md` 只保留一行覆盖摘要、状态和 QA ID。此门槛不替代正式笔记的 L1/L2/L3。
-
-## 推荐工具与检查能力边界
-
-使用已核实的 `SKILL_DIR` 调用只读脚本（`scripts/check_vault.py`）：`python3 "$SKILL_DIR/scripts/check_vault.py" --vault "$VAULT_DIR" --course "$COURSE_DIR" --json`。支持 `--course` 为 Vault 内的相对或绝对路径；不从 `pwd` 推断 Skill 安装目录。脚本仅检查 L1 确定性结构/引用：E1 速览唯一性、子标题、静态禁用标识与复习嵌入歧义；D1 JSON 结构、路径、完成态文件存在性及 C1 来源引用；E2 当前文件相对图片/普通笔记链接的课程/Vault 双层边界、邻近来源图注、Mermaid 围栏/Callout 前缀；同时避开代码示例、注释、原始 OCR 和备份文件。
-
-CLI 退出码：`0` 无确定性 Error（可有 Warning 或尚未初始化），`1` 有确定性 Error，`2` 参数无效、课程不存在或越界。JSON 中的 `issues` 按 `(severity, file, line, code)` 排序；`not_checked` 明示**数学推导正确性、OCR 原文保真、图表/统计真实性、Obsidian 实际渲染及 L2/L3 证据**等脚本无法判断的事项。静态 `error` 与 QA `P0`、静态 `warning` 与 QA `P1` **不得直接画等号**；QA 风险级别须根据实际教学影响另行评估。脚本不自动修改任何用户课程文件。
+- **Exit codes:** `0` = no deterministic errors (warnings or uninitialized vault allowed); `1` = deterministic error(s); `2` = invalid arguments or out-of-bounds path.
+- **Deterministic output:** `issues` sorted by `(severity, file, line, code)`; `not_checked` explicitly lists `mathematical_correctness`, `ocr_fidelity`, `visual_chart_accuracy`, `obsidian_runtime_rendering`, and `qa_l2_l3_evidence`.
+- **Do not equate** static `error` with QA `P0` or static `warning` with `P1`; assess pedagogical impact separately. `completed_with_issues` is a delivery status, not a certificate of zero defects.
