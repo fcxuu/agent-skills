@@ -1,78 +1,77 @@
-# 02 · 教学风格与理解断点修复
+# 02 · Pedagogy, Depth Adaptation & Gap Bridging
 
-## 两种主要教学风格
+## Unified Teaching Style
 
-- **精炼课堂笔记风格**：把核心定义、公式、必要条件、常见混淆点整理成便于查阅与期末复习的结构。
-- **系统自学教材风格**：保留完整的课程知识脉络、原有推导与必要例题；对于阻碍后续理解的跳步补充简短桥接，保持严谨准确。
+Fuse two complementary qualities into **one single note set** (never two duplicate copies):
+- **Concise lecture notes:** Surface core definitions, formulas, necessary conditions, and common pitfalls for rapid lookup and exam review.
+- **Systematic self-study textbook:** Preserve full conceptual flow, original derivations, and key examples; bridge jumps that block comprehension with brief, rigorous steps.
 
-两者在**同一套笔记**中融合，不要求两份重复版本。正文面向自学而不是家教对话；不要频繁反问用户或采用教师式一对一交互口吻。
+Write in a self-study reference tone—never interactive tutoring chatter or conversational quizzes.
 
-## 信息密度与补充边界
+## Adapting Depth to Section Information Density
 
-按**逻辑小节的实际信息密度**而非文件扩展名选择重构深度：
-- **提纲型 PPT/讲义**：在有依据时补齐独立自学所需的背景、重要条件、关键中间公式、算法步骤与直觉；新增解释须标注来源类别，不可冒充原文证明。
-- **详述型教材**：忠实保留定义、假设、原有推导脉络和核心例题；仅修补影响理解的跳步，不机械重证全部定理或同义扩写。
-- **混合型**：逐小节自适应，同一文件中可采用不同深度。**单纯省略证明不构成内容错误**。
+Adapt reconstruction depth per **logical section's information density**, not file extension:
+- **Outline-heavy slides/handouts:** When supported by sound foundations, supply essential context, conditions, intermediate equations, algorithm steps, and intuition; tag substantive additions honestly so they are never mistaken for original textbook proofs.
+- **Detailed textbooks:** Stay faithful to definitions, hypotheses, derivations, and worked examples; bridge only real comprehension jumps without mechanically re-proving every theorem or padding prose.
+- **Mixed sources:** Adapt section by section. **An omitted proof in slides is not by itself a content error.**
 
-## 四类来源标注（Provenance）
+## Four Provenance Categories
 
-| 类别 | 标注 | 边界 |
+| Category | Tag | Boundary |
 |---|---|---|
-| 原文忠实整理 | 无须逐句打标签 | 提炼原课件已有定义、假设、结论、推导及例题 |
-| 实质性严格补全 | `[推导补全]` | 从明确前提与可靠公式/标准定理推出的新增关键步骤 |
-| 教学理解辅助 | `[直觉桥接]` | 几何/概率/算法直觉，不可代替证明 |
-| 源材料以外的延伸 | `[拓展补充]` | 有可靠依据且真正有教学价值，默认折叠 |
+| Faithful source synthesis | *(no per-sentence tag)* | Distilling existing definitions, assumptions, conclusions, derivations, and examples from course sources |
+| Substantive rigorous addition | `[推导补全]` | New intermediate steps strictly implied by stated premises and standard theorems |
+| Pedagogical intuition aid | `[直觉桥接]` | Geometric/probabilistic/algorithmic intuition; never a substitute for proof |
+| Beyond-source extension | `[拓展补充]` | Verifiable, high-value enrichment; folded by default (`[!note]-`) |
 
-只对**实质新增**知识/推导标记，不为润色、标题调整或普通过渡句打标签。1–2 句话的补全和直觉可用正文前缀 `**[推导补全]**`、`**[直觉桥接]**`；多步公式或独立概念解释用展开 `[!tip]`，拓展折叠 `[!note]-`，疑点用展开 `[!warning] [待核验隔离]`。呈现规范见 Obsidian 排版（`references/03-obsidian-style.md`）。**严禁以标签冒充证据或把待核实论证包装为已验证事实。**
+Tag only **substantive new knowledge/derivations**—never polish, heading edits, or transitions. Use inline bold prefixes (`**[推导补全]**`, `**[直觉桥接]**`) for 1–2 sentence additions; use expanded `[!tip]` for multi-step math, folded `[!note]-` for extensions, and expanded `[!warning] [待核验隔离]` for unverified doubts (see `references/03-obsidian-style.md`). **Never disguise unverified claims as proven facts.**
 
-## 推导补全五项准入
+## Five Admission Criteria for Derivation Bridging
 
-1. 明确前提与符号，包括独立性、可逆性、收敛性、维度等适用条件。
-2. 新增关键推导步骤能从源公式或可靠数学定理直接推出，演绎链可核验。
-3. 不能偷渡未声明的强假设。**演示特例的辅助工作条件**可显式注明「以下额外假设……（源材料未明确给出）」，结果仅属于该特例；若**原主定理必需的核心条件**缺失且无法核实，不可用新假设掩盖问题，须局部隔离原主张。
-4. 原教材公式编号保留（例如 `\\tag{3.7}`）；Agent 新加的中间公式默认不编号，且使用全文统一的主符号。
-5. 复杂多步新增推导或关键条件补全触发 L2 数学专项复核。
+1. State premises and notation explicitly (independence, invertibility, convergence, dimensions).
+2. Ensure each added step follows verifiably from source formulas or standard theorems.
+3. Never smuggle undeclared strong assumptions. An **auxiliary working assumption for a special-case illustration** must be explicitly marked as extra and non-source; if a **core theorem hypothesis** is missing and unverifiable, isolate the claim instead of patching over it.
+4. Keep original textbook equation numbers (`\tag{3.7}`); leave agent-added intermediate equations unnumbered and consistent with the primary notation.
+5. Multi-step added derivations or critical added conditions trigger L2 mathematical verification.
 
-## 局部隔离的五种实质风险
+## Five Substantive Grounds for Local Quarantine
 
-仅当下列事项无法通过可靠源材料/标准定理消除时，隔离**具体受影响的内容**，不整节罢工：
-1. 主结论必需的核心数学假设缺失。
-2. 关键变量或算子未定义且存在多种合理解释。
-3. OCR、图片、缺页等损毁导致关键公式或数据不可还原。
-4. 多份课件的定义、条件或核心结论不可调和地冲突。
-5. Agent 新增重要论证无法获得充分数学依据。
+Quarantine **only the specific affected claim** (never abandon the whole section) when reliable sources/standard theorems cannot resolve:
+1. Missing core hypothesis required for the main claim.
+2. Undefined key variable or operator with multiple incompatible interpretations.
+3. Corrupted OCR, missing figure, or missing page making a core formula/number unrecoverable.
+4. Irreconcilable contradiction across course sources on definitions, conditions, or main claims.
+5. Important agent-added argument lacking rigorous mathematical justification.
 
-保留同节其他可靠知识，在疑点原位用 `> [!warning] [待核验隔离]` 标注源文件、可信页码/行号、风险与 QA ID，登记 `QA.md` 的证据和下游依赖，并继续处理其他独立内容。**`## 核心速览` 只能收录已核实结论、必要条件和可靠的简短理解，不得放冗长补全、拓展折叠块或待核验隔离内容。**
+Keep all reliable knowledge in the section; mark the suspect spot inline with `> [!warning] [待核验隔离]` citing source file, page/line, risk, and QA ID, log evidence & downstream dependencies in `QA.md`, and keep moving. **`## 核心速览` must contain only verified claims, necessary conditions, and concise reliable summaries—never long additions, folded extensions, or quarantined claims.**
 
-## C1 来源追溯与主符号体系
+## Source Traceability & Primary Notation System
 
-跨课件内容可按课程目录下的 `raw-markdown/source-map.md` 溯源（定位规范见 `references/05-knowledge.md`）。对**确实等价**的数学对象选定一个主符号体系，在正文及新增补全中贯彻；必要时提供 `[符号对照]` 的来源与变量/维度对应，保留不同课件原有编号和独有前提。不同对象、不同假设下的相似公式不得强行并成同一命题。原始 Markdown 不因展示符号统一而被改写。
+Trace cross-slide content via `raw-markdown/source-map.md` (see `references/05-knowledge.md`). For **genuinely equivalent** mathematical objects, pick one clearly sourced primary notation across the note and added steps; list alternative slide symbols in a `[符号对照]` table/list with source provenance and dimensions while preserving each source's original numbering and unique assumptions. Never merge formulas with different hypotheses; never rewrite `raw-markdown/` to force unified notation.
 
-## 内容重构规则
+## Reconstruction Rules
 
-1. **忠实于源教材**：不改变定义、必要假设、结论与原有论证的数学含义；确有源错误时说明证据。跨课件的等价符号展示统一须附 `[符号对照]`，不悄悄篡改原件。
-2. **优先修复理解断点**：识别从一式到下一式的关键定理、代数转换、独立性、适用范围和符号含义；通常用 1—3 句或一个必要的中间公式解释，不做每个等号逐行讲解。
-3. **教材未证明的定理**：正文简要交代定理、条件和为何在此处使用；完整证明仅在确有学习价值时放折叠区或独立知识页。不默认重证用户大多数学过的定理。
-4. **按知识类型调整呈现**：概念强调边界与例子，定理强调条件与结论，算法强调核心思路与步骤，统计方法强调假设与适用场景。保留原材料中的关键例题和图解。
-5. **克制补充**：只有能解决理解障碍或真实提供价值才补图、例子或解释；避免长篇泛泛的故事、同义重复、擅自增加教材之外的研究生级理论。
-6. **严谨不打折**：通俗类比是理解辅助，不是证明。复杂公式可给直觉，不能把不准确的直觉写成严格定理。
+1. **Stay faithful to sources:** Preserve mathematical meaning, hypotheses, and conclusions; cite evidence if the source itself contains an error.
+2. **Bridge only real jumps:** Explain the theorem, algebraic identity, independence condition, or domain constraint connecting step A to step B (usually 1–3 sentences or one intermediate equation)—do not narrate trivial algebra line by line.
+3. **Unproved theorems in slides:** State the theorem, its hypotheses, and why it is invoked here; fold full proofs or split to a dedicated page only when pedagogically worthwhile.
+4. **Match knowledge type:** Concepts → boundaries & examples; theorems → hypotheses & conclusion; algorithms → core idea & steps; statistical methods → assumptions & applicability. Keep key source examples and diagrams.
+5. **Restraint:** Add figures, examples, or notes only when they remove real friction; avoid filler storytelling or graduate-level detours.
+6. **No rigor shortcuts:** Intuition aids understanding; never present loose analogy as proof.
 
-## 笔记的教学结构
+## Teaching Note Structure
 
-- `## 核心速览` 独立且自足：仅收录已核实核心结论、公式、必要条件与易错点；禁止将待核验隔离、冗长推导或折叠拓展放入复习嵌入区。
-- 正文按原材料逻辑顺序，用定义/公式卡片、关键理解卡片、重要条件卡片配合；不是每篇必须凑齐同一种卡片列表。
-- 图示应降低理解成本并紧贴解释；只要看不见图就会影响理解，图应展开，放在对应 Callout 内。
-- 证明和例题答案默认折叠；**影响后续推理的必要桥接不折叠**。
-- 相关背景和延伸可链接到已有知识页；不要仅因术语出现就生成独立页面。
+- Standalone `## 核心速览`: verified core conclusions, formulas, conditions, and pitfalls only.
+- Main body follows logical course flow with purposeful definition/formula, intuition, and condition callouts.
+- Figures essential for comprehension remain expanded inside their corresponding callout.
+- Long proofs and exercise solutions fold by default; **bridges required for later reasoning stay expanded**.
+- Link to existing prerequisite notes rather than spawning thin stub pages for every term.
 
-## 示例：只补关键跳步
+## Example: Bridging Only the Critical Step
 
-原式：
+Source formula:
 
 $$
 M_{Z^2}(t)=\frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty}e^{-(1-2t)z^2/2}\,dz=(1-2t)^{-1/2}.
 $$
 
-**[推导补全]** 可补：利用高斯积分 $\int_{-\infty}^{\infty}e^{-ax^2}dx=\sqrt{\pi/a}$，令 $a=(1-2t)/2$，要求 $t<1/2$。无需重讲完整矩母函数章节；必要时链接已有 `[[矩母函数]]`。
-
-若“独立标准正态平方和”本身是卡方分布的**定义**，不能把它误写成需要证明的结论；可另证其密度等价于 Gamma 分布。检查定义、定理、推论和证明的角色。
+**[推导补全]** Apply the Gaussian integral $\int_{-\infty}^{\infty}e^{-ax^2}dx=\sqrt{\pi/a}$ with $a=(1-2t)/2$, requiring $t<1/2$. No need to re-derive moment generating functions from scratch; link to an existing prerequisite note if present. Verify whether a statement is a *definition* vs. a *theorem* before attempting to "prove" it.

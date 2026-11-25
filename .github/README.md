@@ -1,16 +1,23 @@
 # Agent Skills · 学习、写作与协作
 
-这里收集我与 AI Agent 共同编写、持续修改的 skills，涵盖复杂任务协作、Obsidian 课程笔记和学术幻灯片制作。
+这里收集我与 AI Agent 共同编写、持续修改的 skills，涵盖编码与复核、复杂任务协作、Obsidian 课程笔记和学术幻灯片制作。
 
 每个 skill 都包含可直接阅读的 `SKILL.md`，部分还提供参考规范、模板、脚本和示例。你可以先阅读指令，选择适合自己工作流的部分，再复制到所用 Agent 的技能目录中试用。
 
+另收录九个带精炼英文路由入口的上游技能，覆盖代码库导读、网页测试、MCP 服务开发、CI 排错、文献引用、科研绘图、Obsidian 视图与画布、Jupyter 实验。全部 15 个技能的 `SKILL.md` 均统一为英文、控制在 8 KB 以内，且可使用根目录 `python3 -B scripts/audit_skills.py` 一键完成结构检查与全量单元测试。具体用途与来源见[工作区 README](../README.md)。
+
 ## 选择一个 skill
 
-| Skill | 适合做什么 | 阅读入口 | 下载 |
+| Skill | 适合做什么 | 阅读入口 | 目录 |
 | --- | --- | --- | --- |
-| **Commander** | 拆解复杂任务、判断是否需要其他 Agent、组织交接、独立验收与整合成果 | [使用说明](../commander-skill/README.md) · [完整指令](../commander-skill/commander/SKILL.md) | [ZIP](../commander-skill.zip) |
-| **Obsidian Self-Study** | 从课程课件与教材构建自学笔记，保留来源，组织公式、图片、复习索引与质量记录 | [使用说明](../obsidian-self-study/README.md) · [完整指令](../obsidian-self-study/SKILL.md) | [v0.1 ZIP](../obsidian-self-study-v0.1.zip) |
-| **Warm Paper Slides** | 用 LaTeX Beamer 制作暖纸底、陶土色强调的中英双语学术汇报 | [完整指令](../暖纸风学术幻灯片制作_Beamer/SKILL.md) · [PDF 样张](../暖纸风学术幻灯片制作_Beamer/assets/starter.pdf) | [ZIP](../暖纸风学术幻灯片制作_Beamer.zip) |
+| **Commander** | 拆解复杂任务、按能力路由执行通道、独立验收与整合成果（任意 Agent 通用） | [使用说明](../commander/README.md) · [完整指令](../commander/SKILL.md) | [commander/](../commander/) |
+| **Coding Task Contract** | 开工前把需求写成范围、可观察的验收条件和验证计划 | [完整指令](../coding-task-contract/SKILL.md) | [coding-task-contract/](../coding-task-contract/) |
+| **Verified Coding Loop** | 实现或修复时记录基线、实际检查、结果和仍缺的证据 | [完整指令](../verified-coding-loop/SKILL.md) | [verified-coding-loop/](../verified-coding-loop/) |
+| **Agent Code Handoff** | 换执行者、设备或审查者时移交可获取的产物，按原验收条件独立复核 | [完整指令](../agent-code-handoff/SKILL.md) | [agent-code-handoff/](../agent-code-handoff/) |
+| **Obsidian Self-Study** | 从课程课件与教材构建自学笔记，保留来源，组织公式、图片、复习索引与质量记录 | [使用说明](../obsidian-self-study/README.md) · [完整指令](../obsidian-self-study/SKILL.md) | [obsidian-self-study/](../obsidian-self-study/) |
+| **Warm Paper Slides** | 用 LaTeX Beamer 制作暖纸底、陶土色强调的中英双语学术汇报 | [完整指令](../warm-paper-slides/SKILL.md) · [PDF 样张](../warm-paper-slides/assets/starter.pdf) | [warm-paper-slides/](../warm-paper-slides/) |
+
+这三个编码 Skill 各自可用。遇到相同失败且没有新线索时，可交付已完成的部分，记录已试方法和恢复条件。选用场景、可复制的请求示例和普通聊天客户端的用法见[工作区使用指南](../README.md#编码任务怎么选-skill)。
 
 ### Commander：把任务推进到可验收的结果
 
@@ -30,34 +37,35 @@
 
 ### Warm Paper Slides：克制、清晰的学术幻灯片
 
-提供 Beamer 主题、七种页面母版、排版规范和检查脚本。适合论文研讨、课程展示和组会汇报，产出 `.tex` 与 PDF。编译需要 XeLaTeX；生成缩略拼版图还需要 Poppler 和 Pillow。字体等具体要求见 [排错说明](../暖纸风学术幻灯片制作_Beamer/references/troubleshooting.md)。
+提供 Beamer 主题、七种页面母版、排版规范和检查脚本。适合论文研讨、课程展示和组会汇报，产出 `.tex` 与 PDF。编译需要 XeLaTeX；生成缩略拼版图还需要 Poppler 和 Pillow。字体等具体要求见 [排错说明](../warm-paper-slides/references/troubleshooting.md)。
 
-![Warm Paper 七种页面母版预览](../暖纸风学术幻灯片制作_Beamer/assets/starter_sheet.png)
+![Warm Paper 七种页面母版预览](../warm-paper-slides/assets/starter_sheet.png)
 
 ## 如何使用
 
 1. 阅读对应的 `SKILL.md`，确认用途、依赖和执行边界。
-2. 下载 ZIP 或克隆仓库，将所需 skill 文件夹复制到你使用的 Agent 支持的技能目录中。
+2. 克隆仓库，将所需 skill 文件夹软链或复制到你使用的 Agent 支持的技能目录中。
 3. 保留文件夹内部结构，让 `references/`、`assets/`、`scripts/` 等配套文件与指令一起安装。
 4. 按客户端要求重新加载技能，并在任务中明确提及 skill 名称。
 
-三个安装单元分别是：
+所有 Skill 的源目录名现均与其安装名称一致：
 
 ```text
-commander-skill/commander/       → commander/
-obsidian-self-study/            → obsidian-self-study/
-暖纸风学术幻灯片制作_Beamer/     → warm-paper-slides/
+commander/
+coding-task-contract/
+verified-coding-loop/
+agent-code-handoff/
+obsidian-self-study/
+warm-paper-slides/
 ```
 
 安装目录和加载方式以所用客户端为准；覆盖已有版本前先备份并比较差异。更新仓库后，也需要自行更新已安装的副本。
 
 ## 当前状态
 
-这些 skills 是持续迭代的工作材料。Commander 说明中保留了初版验证边界；Obsidian Self-Study 的 v0.2 改进已陆续合入，当前源码版本号仍为 `0.1.0`，下载包沿用 `v0.1` 名称并按最新源码更新；尚未完成真实文档摄取到 Obsidian 阅读视图的端到端测试。Warm Paper 提供源码、样张与检查工具，具体汇报仍需编译并逐页检查。
+这些 skills 是持续迭代的工作材料。仓库直接维护可读源文件，不再保留 `.zip` 快照包；各工具脚本仅依赖 Python 标准库（或各自标注的独立运行环境）。
 
 脚本检查只能覆盖部分问题，实际工具能力、内容准确性和最终阅读效果仍需在任务中核验。仓库中的依赖和示例不代表任何外部服务或模型免费可用。
-
-源码是维护依据。ZIP 是打包时的快照，修改源码后应重新打包再分享。
 
 ## 交流与维护
 

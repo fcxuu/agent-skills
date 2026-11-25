@@ -1,18 +1,20 @@
-# 05 · 知识索引、章节组织与期末复习
+# 05 · Knowledge Indexing, Syllabus Mapping & Review Hubs
 
-## 文件拆分
+> **Quick Index:** 1. File Splitting · 2. Incremental Syllabus Mapping (`source-map.md`) · 3. Cross-Slide Synthesis & Notation · 4. Course `README.md` Hub · 5. Links & Immutable Completed Notes · 6. Cross-Course Reuse · 7. Exam Review Hubs
 
-- **默认按原教材/课件小节**生成一篇教学 Markdown；如果同一节涵盖多个完整的核心主题、内容过长、或一个知识点确有跨章节复用价值，才按需拆分。
-- 长证明未必单独成页；能在折叠 Callout 内自然呈现时不要过度碎片化。复杂且独立的证明/先修知识可另建知识页，但不得强制生成所有潜在知识页。
-- 同课程的多份课件是一个课程资料集；维持可信的课程顺序与来源关系，不虚构教材章节编号。
+## 1. File Splitting
 
-## 增量课程大纲映射（Syllabus Mapping）
+- Default to **one teaching Markdown note per logical textbook/slide section**. Split only when a section spans multiple self-contained core topics, grows unwieldy, or contains a concept reused across chapters.
+- Keep long proofs in folded callouts (`[!note]-`) rather than fragmenting into stub notes; spin off a standalone prerequisite/proof page only when genuinely reusable.
+- Treat multiple slide decks in one course folder as one unified material set in source order; never invent fake textbook chapter numbers.
 
-正式笔记构建前，从已经完成摄取的源资料增量维护课程目录下的 `raw-markdown/source-map.md`。**映射对象是逻辑知识小节，不是课件文件**：支持一份课件对应多节、多份课件对应同一节，以及单文件内非连续片段。此映射仅保存来源位置和边界核验结果，不复制 OCR 正文、承担五态任务状态，也不替代课程 README。
+## 2. Incremental Syllabus Mapping (`raw-markdown/source-map.md`)
 
-### 紧凑映射表与区间语法
+Maintain `COURSE_DIR/raw-markdown/source-map.md` incrementally after ingestion and before authoring each section. **Map logical knowledge sections, not files**: one deck may feed many sections, multiple decks may feed one section, and non-contiguous slices in one file are supported. This file stores **source coordinates and boundary verification status only**—never OCR body text, task 5-state progress, or a duplicate README.
 
-`source-map.md` 使用以下固定四列表格，每个逻辑小节一行；为每份原始素材同时保存**源课件路径、摄取 Markdown 路径、页码/幻灯片或标题锚点、可用时的辅助行号**：
+### Fixed 4-Column Table & Coordinate Syntax
+
+Keep the header starting with `逻辑章节 / 小节` (recognized by `scripts/check_vault.py`):
 
 | 逻辑章节 / 小节 | 源课件与定位区间 | 边界状态 | 关联教学笔记 |
 |---|---|---|---|
@@ -20,60 +22,59 @@
 | Ch02 / 2.2 随机游走 | `lec02.pdf` → `raw-markdown/lec02.md` (`P.19-32`, `L196-L340`); `lec03.pdf` → `raw-markdown/lec03.md` (`P.1-12`, `L1-L145`) | `verified` | `notes/02-02-random-walk.md` |
 | Ch02 / 2.3 谱聚类（续） | `lec03.pdf` → `raw-markdown/lec03.md` (`P.13-28`, `L146-L310`) | `unverified` | - |
 
-**定位语法固定**：每段为 `源文件 → raw-markdown/原始文件 (页码或幻灯片范围, 可选行号范围, 可选标题锚点)`；多段用半角 `;` 分隔，按源资料的可信逻辑先后排列。同一源文件内不连续片段也**重复写成两个独立段**，不可用含糊的「前半部分/见附录」替代。范围两端均包含（1-based inclusive）；`P.1-18` 表示 PDF 第 1–18 页，PPT 用 `Slide.1-12`，行号用 `L10-L195`；可标记 `H:实际标题` 作为辅助锚点。可靠原始页码/幻灯片与标题优先，行号只用于精确切片；缺少可靠数据时标 `-` 或不填，不虚构位置。路径均相对 `COURSE_DIR`，参见主入口（`SKILL.md`）的命名空间规则。
+- **Segment syntax:** `<source-file> → raw-markdown/<file>.md (<page/slide range>, <optional line range>, <optional H:Heading>)`, separated by `;` in logical order. Represent non-contiguous slices in the same file as separate segments (1-based inclusive: `P.1-18`, `Slide.1-12`, `L10-L195`). All paths are relative to `COURSE_DIR`. Never fabricate missing page/line numbers.
+- **Boundary states (`verified` / `unverified` only):** `verified` means source start/end boundaries were checked (it does **not** mean the note passed QA). Mark `unverified` and log the reason in `QA.md` when uncertain; keep linked note as `-` until created and verified.
 
-仅有 `verified` 和 `unverified` **两种来源边界状态**：`verified` 表示已根据来源核对该知识小节的起止边界（含必要的相邻延续核验），并非已经通过笔记 QA；不确定时为 `unverified`，在 `QA.md` 记录具体原因与影响。关联笔记尚未创建时写 `-`，生成并核验目标路径后回填。禁止将此文件当作新的任务状态清单或贴入长摘要。
+### Right-Boundary Peek
 
-### 增量边界探测（Right-Boundary Peek）
+1. After ingesting a source file or small batch, inspect headings, page/slide anchors, and adjacent boundaries to map confirmed sections—never preload the full course body.
+2. If a deck ends mid-topic (incomplete derivation or explicit continuation), peek at the next deck's outline/opening pages (and ingest it first if safe) before authoring that section. An omitted proof alone does not automatically mean the unit is truncated.
+3. If continuation material is unavailable, mark `unverified`, log in `QA.md`, postpone only affected sections, and continue independent ones.
+4. Whenever a `raw-markdown/*.md` file is patched or edited, **re-verify every line range referencing it** in `source-map.md` before slicing.
 
-1. 每摄取一份或一小批材料，只读取其标题、页/幻灯片锚点与必要相邻内容，识别可确认的小节，不预加载整门课正文。
-2. 若当前课件末尾**明显存在未闭合的知识单元**（如公式推导断在中途、算法步骤明确标为续篇），在写该小节笔记**之前**向后查看排序中相邻下一份课件的目录/标题与前几页；若尚未摄取且能够安全摄取，先处理这份相邻材料，再确认跨文件来源范围。单纯「定理未附证明」未必意味着未完结，须以上下文判断。
-3. 后续材料无法获得或边界仍不确定时记 `unverified`，写明 QA 原因并仅推迟**受影响小节**；其他边界已确认的独立小节继续推进，不擅自补齐或闭合。
+## 3. Cross-Slide Synthesis & Notation Alignment
 
-源 Markdown 发生补扫、纠错或增删时，**重新核验此文件所有引用该 Markdown 的行号范围**以及必要的页码/标题锚点；旧行号在重验前不能作为可靠切片依据。原始课件仍是第一手位置证据。
+1. Read exact slices per `source-map.md`, retaining hypotheses, original equation numbers, captions, and transitions.
+2. Reorganize logically (`motivation → definition → properties/theorems → derivation → algorithm/example`) without altering source hypotheses or inventing proofs.
+3. Deduplicate overlapping slide coverage into one coherent note; split only if oversized or widely reused.
+4. **Primary notation:** Pick one clearly sourced primary symbol system for genuinely equivalent objects; document alternate slide symbols in `[符号对照]` with provenance and dimensions. Never merge non-equivalent objects or rewrite `raw-markdown/`.
+5. **Unresolved conflicts:** Keep both sources and coordinates visible, quarantine the disputed claim, and log in `QA.md`.
 
-### 跨课件知识缝合与符号对照
+### Separation of Three Course-Level Files
 
-1. **多源定位**：按 `source-map.md` 中的各段坐标精确读取，保留涉及的条件、公式编号、图注及衔接句。
-2. **可信逻辑重排**：可按「学习动机 → 定义 → 性质/定理 → 推导 → 算法/例题」组织，但不得擅自改变源材料数学假设或捏造缺失证明。
-3. **去重整合**：合并实质相同的定义、背景和推导，优先产出**一篇可独立阅读的逻辑小节笔记**；体量过大或确有跨章复用价值时才拆页。
-4. **符号统一**：对真正等价的数学对象，选定一套来源明确的主符号贯穿正文公式与推导；若另一份课件使用异构符号，在相关 Callout 中显式标注 `[符号对照]`、来源与对应关系。**不等价或仅表面相似的符号/假设不得强行统一**；各来源的独有条件、结论及编号仍可追溯，原始 Markdown 不改写为统一符号。
-5. **冲突隔离**：若源课件存在实质不一致且证据不足以裁决，在笔记中标明两套来源及位置，隔离未决结论，并将问题及依赖记入 `QA.md`；不能靠统一记号掩盖概念差异。
+- `README.md`: Student navigation hub (overview of sources, checkpoint progress summary, note links, selective keyword index, brief link to `source-map.md`).
+- `raw-markdown/source-map.md`: Compact agent slicing map & two-state boundary status only.
+- `QA.md`: Audit ledger for `unverified` boundaries, missing pages, stale line ranges, math/symbol conflicts, and verification evidence.
 
-### 三种文档职责
+Under multi-agent execution, all three plus `.build-state.json` have **one single coordinator writer** (`references/08-multi-agent.md`).
 
-- 课程 `README.md`：学生导航主页，仅放章节/小节、正式笔记链接与源材料**概览**，可简短指向 `raw-markdown/source-map.md`，不展开大量技术行号。
-- `raw-markdown/source-map.md`：供 Agent 增量定位和按范围切片使用，仅记录紧凑映射与两态来源边界，不存任务进度或全文摘要。
-- `QA.md`：记录来源边界 `unverified`、缺页、行号失效、符号或数学结论冲突及必要核验依据，不堆正常流水账。
+## 4. Course `README.md` Navigation Hub
 
-多 Agent 运行时，`source-map.md` 与 README/QA 同属全局共享文件，**仅 Commander 或指定唯一协调写入者修改**；Worker 通过自己的交接记录提供新增/修订映射建议，禁止并发覆写。具体分工见多 Agent 协作规范（`references/08-multi-agent.md`）。
+Place `README.md` alongside source slides in `COURSE_DIR`:
+- **Checkpoint updates only:** Update at meaningful checkpoints (2–3 newly completed sections, chapter L3 completion, major failure/dependency shift, resume, or delivery)—not on every `processing`/`qa_pending` micro-transition.
+- **Selective keyword index:** Include only high-value cross-chapter concepts, theorems, and algorithms pointing to concrete existing notes/headings.
+- **Targeted reading:** Locate prerequisites via `README.md`, read `## 核心速览` first, and expand to exact definition/theorem sections only when needed.
+- **Projection rule:** `README.md` may trail `.build-state.json` briefly between checkpoints, but must never report unverified sections as `completed`.
 
-## 课程 README.md 是入口
+## 5. Links & Immutability of Completed Notes
 
-与当前课程的源 PDF/PPT **同级**放置 `README.md`，内容同时包括：源材料与原始 Markdown/覆盖范围**概览**、课程状态与章节/小节**检查点摘要**、位置、少量关键依赖、重要关键词速查。机器五态与重试次数只在课程根目录 `.build-state.json` 中维护；README 不承担逐次机器状态迁移。精确跨文件区间存于 `raw-markdown/source-map.md`，不在 README 复制完整技术定位表。详细摄取工具记录、异常、缺页与每次返工另写 `QA.md`；README 仅保留简短的覆盖状态与 QA ID，优先保障学生阅读导航。
+- **Forward-only links from new notes:** When a new note relies on a completed prerequisite, add a relative Markdown link (`[马尔可夫性](../ch01/ch01-02-markov.md)`) in the **new note only**. Never edit a read-only `completed` note just to add a backlink—Obsidian's native Backlinks core plugin surfaces incoming links automatically.
+- **Portable relative paths:** Compute all non-embed links relative to the referencing file's parent directory, verified inside `COURSE_DIR`.
+- **Anti-overlinking:** Link each prerequisite once where pedagogically meaningful; avoid mass-creating broken `[[stub]]` links.
+- **Post-completion risk notices:** If a P1/P0 issue is found in a completed note later, update `QA.md`, `.build-state.json`, and `README.md`/`review/` notices only—never silently overwrite the completed note body.
 
-- **增量建立索引**：按检查点批量更新课程主页（重要小节通过 QA，可合并连续 2–3 小节；章节 L3 完成；重大失败/依赖变化；中断恢复或最终交付）。不为 `processing`、`qa_pending` 等每次机器状态变化重写 README，也不预建全书术语表。
-- **关键词速查**：仅收录值得跨章节定位的概念、定理、算法等，映射到已有的具体笔记/标题。不要把所有名词加入速查。
-- **按需读取**：先从 README 的章节/小节表或少量重要关键词速查定位**目标路径与标题锚点**，然后仅读取需要的区块。优先读取已完成前置笔记的 `## 核心速览`，涉及严格条件、定理定义时再读取相应 `## 定义与公式` 或精确标题下的必要段落；不得为一个概念默认加载全文、长证明及无关例题。若速览不足以核实假设或推导，则按需扩大至原文的确切相关区段，不以节省 Token 损害准确性。
-- **README 是人类导航投影**：进度允许在批次间短暂落后 `.build-state.json`，但绝不超前将未通过 QA 内容显示为 `completed`。状态冲突按磁盘实际笔记与 QA 证据优先核对，再对照机器 JSON 和 README。README 太长时按章检索对应区域，不必每次读全文。上下文重建或续跑不改写已通过 QA 的完成态笔记；需要补充后续关联时优先利用 Obsidian 原生 Backlinks 及 README/复习入口，具体写入保护按批量执行与恢复规范（`references/07-execution.md`）执行。
+## 6. Cross-Course Sharing
 
-## 双链与完成态不可变
+Keep each course self-contained by default. Never automatically move or overwrite notes across courses; create shared notes only when genuinely reusable principles have clear payoff while preserving course-specific assumptions.
 
-- **新笔记单向向前引用**：新小节首次实质性使用已经完成的前置概念/定理时，在**当前新笔记**中添加文件相对的标准 Markdown 链接（如 `[马尔可夫性](../ch01/ch01-02-markov.md)`）；不得为了补充指向当前小节的反向链接而修改完成态旧笔记。Obsidian 的原生 **Backlinks（反向链接）核心插件**在启用时会自动显示哪些新笔记链接了当前笔记；无需人工在前置文件中写回反向双链。
-- **外部导航中枢**：`README.md`、新笔记与章节导航采用**从引用文件 `.parent` 计算**的标准 Markdown 相对链接（如从课程 README 指向 `[本节](notes/ch05/xxx.md)`）。复习页仍保留 Obsidian **原生** `![[唯一笔记文件名#核心速览]]`，须在所支持的最大 Vault 范围核查目标文件名（stem）唯一；重名时只提供相对 `[查看核心速览](../notes/ch05/xxx.md#核心速览)` 普通跳转，并在 QA 登记无法无歧义内嵌，**不得把 `![alt](note.md#标题)` 当已验证的标题嵌入**。不复制两份正文。
-- **克制链接（Anti-Overlinking）**：只在实质先修依赖、定理调用或方法对比时建立；同一篇新笔记中同一前置知识原则上在首次有教学意义的位置链接一次。文件重名时用**文件相对 Markdown 链接**消歧，而不是重新硬编码 Vault 根。
-- **质量风险外部提示**：后来发现完成态笔记的 P1/P0 时，遵循 QA 规范（`references/06-quality.md`）与执行/修订规范（`references/07-execution.md`），仅更新 QA、机器状态及 README/复习入口的必要风险提示，不自行回写已完成笔记。P0 来源的主结论不得作为无警示的可靠先修知识继续传播。
+## 7. Exam Review Hubs (`review/`)
 
-优先使用当前 Markdown 文件相对的标准 Markdown 链接，例如从 `notes/ch05/` 指向 `[实体对齐](../ch04/entity-alignment.md)`；采用程序计算与 `COURSE_DIR` 包含检查，文件名相同时也不会串到其他课程。链接应有教学意义：前置知识、理论联系、后续应用；同一段不反复链接。禁止大量制造未创建的 `[[目标]]`；计划新建的知识页应登记依赖和待建状态，若无法完成则标记未就绪。
-
-## 跨课程共享
-
-课程独立为先，不把任何课程内容自动挪到共享总库；成熟通用的知识只有在确有复用收益时才考虑建立共享页。只复用稳定的通用原理，保留各课程独有的假设、推导顺序和案例。不同参数化、同名异义不能机械合并。不得自动大规模移动、覆盖用户已有课程笔记。
-
-## 期末复习入口
-
-- 每个主要教学笔记有且仅有一个 `## 核心速览`：位于主标题之后、详细正文之前，内部不含 `###` 等子标题、悬空上下文指代、脚注或未经核验内容；只保留自足的定义、重要公式、必要条件与易错点。**不复制两份完全相同的学习笔记**。
-- 在课程 `review/` 内建立章节复习入口：对已完成且**在最大受支持 Vault 内文件名唯一**的笔记使用原生 `![[唯一文件名#核心速览]]`（省略 `.md`）。不唯一时不猜测错误文件，不自动重命名已完成笔记；改成文件相对的 `[查看核心速览](../notes/chXX/笔记.md#核心速览)`，标记这是**跳转而非嵌入**，并在 QA 中说明待处理的重名冲突。
-- **复习嵌入五门槛**：①目标 `.md` 文件存在且非空；② `## 核心速览` 唯一且范围合规；③ `.build-state.json` 状态为 `completed` 且必要 L1/L2 QA 确已通过；④不存在影响核心速览主结论的未决 P0；⑤原生标题嵌入目标**文件名在打开的最大 Vault 内唯一**且锚点有效（不满足时改为可解析的文件相对普通链接，并记录无法嵌入的限制）。不满足条件不得作为无警示的已通过内容嵌入。
-- **事后 P0 联动**：若 D2 已完成笔记后来因核心 P0 被改为 `failed`，只修改 `review/` 中受影响的嵌入行（优先移除/注释）并在适当位置写明风险或 QA ID；必要时可改为显式警示而非无警告的速览。**不修改原受保护笔记正文**。即使小节拆成多篇，仍按课程逻辑顺序组织已核验部分。
-- “核心知识”不自动等于“必考知识”。只有有考试范围、教师要求或试卷等可信依据时才标注考试重要性；无依据可标“课程重点”，不要虚构考试预测。
+- Every teaching note has one self-contained `## 核心速览` (verified definitions, formulas, conditions, pitfalls; no subheadings, footnotes, or quarantined claims). Never duplicate full note bodies into `review/`.
+- **Five Gates for Review Embeds:**
+  1. Target `.md` exists and is non-empty.
+  2. `## 核心速览` is unique and structurally compliant.
+  3. `.build-state.json` status is `completed` and required L1/L2 QA passed.
+  4. No open core P0 invalidates the summary conclusions.
+  5. For native Obsidian `![[UniqueFileName#核心速览]]` embeds, the filename stem is **unique across the full `VAULT_DIR`** (if duplicate, fall back to a normal relative jump link `[查看核心速览](../notes/chXX/note.md#核心速览)` and log the collision in `QA.md`; never treat `![alt](note.md#heading)` as a verified heading embed).
+- **Post-completion P0 demotion:** If a completed note is later demoted to `failed` for a core P0, remove/comment or annotate its embed line in `review/` with the QA ID—do not edit the protected note body.
+- Do not fabricate "guaranteed exam topics"; label "课程重点" unless authoritative syllabus/exam evidence exists.
